@@ -1,0 +1,128 @@
+[project]
+name = "llm-engineer-path"
+version = "0.1.0"
+description = "莫抒衡的大模型开发训练营 — staged learning path (Python → FastAPI → MySQL → LLM/RAG/LangGraph → Finetune → Interview)"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    # Cross-cutting tools used in nearly every stage
+    "python-dotenv>=1.0",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "rich>=13.7",
+]
+
+# Per-topic dep groups (PEP 735). Install with: uv sync --group <name>
+# uv sync (no flags) installs only [project.dependencies] + [dependency-groups.dev].
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+]
+
+# ── Stage 1: Foundations ────────────────────────────────────────────────────
+fastapi = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+]
+mysql = [
+    "sqlalchemy>=2.0",
+    "pymysql>=1.1",
+    "aiomysql>=0.2",
+    "alembic>=1.13",
+    "cryptography>=43",
+]
+llm-basics = [
+    "openai>=1.40",
+    "anthropic>=0.34",
+    "tiktoken>=0.7",
+]
+
+# ── Stage 2: Advanced ───────────────────────────────────────────────────────
+langchain = [
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "langchain-community>=0.3",
+    "langchain-openai>=0.2",
+    "langchain-text-splitters>=0.3",
+]
+redis = [
+    "redis[hiredis]>=5.0",
+]
+rag = [
+    "langchain>=0.3",
+    "langchain-community>=0.3",
+    "langchain-openai>=0.2",
+    "langchain-chroma>=0.1",
+    "langchain-classic>=1.0; python_version >= '3.10'",
+    "langchain-experimental>=0.3",
+    "langchain-text-splitters>=0.3",
+    "chromadb>=0.5",
+    "faiss-cpu>=1.8",
+    "sentence-transformers>=3.0",
+    "rank-bm25>=0.2",
+    "pypdf>=4.3",
+    "unstructured>=0.15",
+    "markdown>=3.6",
+    "ragas>=0.2",
+    "datasets>=2.20",
+    "dashscope>=1.20",
+    "ddgs>=6.0",
+]
+langgraph = [
+    "langgraph>=0.2",
+    "langsmith>=0.1.130",
+    "langchain>=0.3",
+    "langchain-openai>=0.2",
+]
+mcp = [
+    "mcp>=1.0",
+]
+travel-assistant = [
+    # Capstone — pulls everything stage 2 needs
+    "langchain>=0.3",
+    "langchain-openai>=0.2",
+    "langgraph>=0.2",
+    "langsmith>=0.1.130",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "redis[hiredis]>=5.0",
+    "chromadb>=0.5",
+]
+# Heavy ML stack — declared but NOT installed by default. Run when you reach
+# stage2-advanced/07-finetune:  uv sync --group finetune
+finetune = [
+    "torch>=2.4",
+    "transformers>=4.44",
+    "datasets>=2.20",
+    "accelerate>=0.34",
+    "peft>=0.12",
+    "trl>=0.10",
+    "sentencepiece>=0.2",
+    "protobuf>=4.25",
+    # llama-factory: install via `uv pip install llamafactory` after sync,
+    # since it pins versions that conflict with newer transformers/peft.
+]
+
+[tool.uv]
+# Skip resolving the heavy finetune group on plain `uv sync`.
+default-groups = ["dev", "fastapi", "mysql", "llm-basics", "langchain", "redis", "rag", "langgraph", "mcp", "travel-assistant"]
+
+# 国内 PyPI 镜像 — pypi.org 在国内网络下不稳定。Aliyun 速度最稳。
+# 临时切回官方源：UV_INDEX_URL=https://pypi.org/simple uv sync
+# 切到 Tsinghua：UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple uv sync
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple"
+default = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
