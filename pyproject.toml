@@ -78,10 +78,23 @@ langgraph = [
     "langgraph>=0.2",
     "langsmith>=0.1.130",
     "langchain>=0.3",
+    "langchain-community>=0.3",
     "langchain-openai>=0.2",
+    "langgraph-checkpoint>=2.0",
+    "langgraph-checkpoint-postgres>=2.0",
+    "langgraph-checkpoint-redis>=0.0.5",
+    "langgraph-cli[inmem]>=0.1",
+    "psycopg[binary,pool]>=3.2",
+    "redis>=5.0",
+    "dashscope>=1.20",
+    "tavily-python>=0.5",
+    "pydantic-settings>=2.0",
+    "tenacity>=9.0",
 ]
 mcp = [
     "mcp>=1.0",
+    "fastmcp>=2.0",
+    "langchain-mcp-adapters>=0.2",
 ]
 travel-assistant = [
     # Capstone — pulls everything stage 2 needs
