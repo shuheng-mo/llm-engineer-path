@@ -5,10 +5,11 @@
 依赖:
 uv pip install pypdf
 """
+
 from langchain_community.document_loaders import PyPDFLoader
 
 # 加载单个 PDF 文件
-loader = PyPDFLoader("documents/report.pdf")
+loader = PyPDFLoader("../../data/文档1.pdf")
 pages = loader.load()
 
 # 查看加载结果

@@ -2,10 +2,11 @@
 
 对应课程章节：一 / 3 代码示例
 """
+
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-loader = TextLoader("docs/LangChain.md", encoding="utf-8")
+loader = TextLoader("../../README.md", encoding="utf-8")
 pages = loader.load()
 
 text = ""

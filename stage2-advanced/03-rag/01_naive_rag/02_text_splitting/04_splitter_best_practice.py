@@ -2,11 +2,12 @@
 
 对应课程章节：一 / 3.4
 """
-from langchain_community.document_loaders import PyPDFLoader
+
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # 1. 加载文档
-loader = PyPDFLoader("docs/LangChain.pdf")
+loader = PyMuPDFLoader("../../data/文档1.pdf")
 documents = loader.load()
 
 # 2. 创建分割器（推荐配置）

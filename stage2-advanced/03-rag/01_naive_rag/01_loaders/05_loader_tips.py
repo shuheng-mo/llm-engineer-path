@@ -2,6 +2,7 @@
 
 对应课程章节：一 / 2.3
 """
+
 from langchain_community.document_loaders import TextLoader
 
 
@@ -12,8 +13,8 @@ def process_document(doc):
 # 处理编码问题
 loader = TextLoader(
     "docs/RAG课程大纲.md",
-    encoding="utf-8",            # 显式指定编码
-    autodetect_encoding=True,    # 或自动检测
+    encoding="utf-8",  # 显式指定编码
+    autodetect_encoding=True,  # 或自动检测
 )
 
 # 大文件使用 lazy_load 逐个返回，减少内存占用
