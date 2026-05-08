@@ -50,6 +50,12 @@ langchain = [
     "langchain-community>=0.3",
     "langchain-openai>=0.2",
     "langchain-text-splitters>=0.3",
+    "langchain-anthropic>=0.2",
+    "langchain-google-genai>=2.0",
+    "langchain-chroma>=0.1",
+    "tqdm>=4.66",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
 ]
 redis = [
     "redis[hiredis]>=5.0",

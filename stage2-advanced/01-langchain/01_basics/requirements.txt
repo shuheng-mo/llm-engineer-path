@@ -1,0 +1,7 @@
+# 课程原始依赖清单（仓库根 pyproject.toml 已涵盖）
+langchain
+langchain-community
+langchain-core
+langchain-openai
+dashscope
+python-dotenv
