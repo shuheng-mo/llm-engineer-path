@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 llm = ChatOpenAI(
@@ -66,7 +71,7 @@ if __name__ == "__main__":
         model="text-embedding-v1",
         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
     )
-    vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
+    vectorstore = Chroma(persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings)
     base_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
     print(multi_query_retrieve("什么是 RAG？", base_retriever))

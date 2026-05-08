@@ -97,7 +97,7 @@ class AdvancedRAGAssistant:
         self.vectorstore = Chroma.from_documents(
             documents=self.child_docs,
             embedding=self.embeddings,
-            persist_directory="./advanced_rag_v1_db",
+            persist_directory=str(DATA_DIR / "advanced_rag_v1_db"),
         )
         print(f"💾 向量数据库创建完成（{len(self.child_docs)} 个子文档块）")
 
@@ -378,7 +378,7 @@ def main():
     print("=" * 70)
 
     assistant = AdvancedRAGAssistant(
-        pdf_directory="docs",
+        pdf_directory=str(DATA_DIR),
         use_hybrid_search=True,
         use_reranker=True,
         use_query_optimization=True,
@@ -410,6 +410,11 @@ def main():
         except Exception as e:
             print(f"❌ 发生错误: {e}")
             import traceback
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
             traceback.print_exc()
 
 

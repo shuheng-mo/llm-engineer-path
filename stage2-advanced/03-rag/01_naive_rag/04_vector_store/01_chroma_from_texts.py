@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 embeddings = DashScopeEmbeddings(
@@ -26,7 +31,7 @@ vectorstore = Chroma.from_texts(
     texts=texts,
     embedding=embeddings,
     collection_name="my_collection",
-    # persist_directory="./chroma_db",  # 取消注释即可写入磁盘
+    # persist_directory=str(DATA_DIR / "chroma_db"),  # 取消注释即可写入磁盘
 )
 
 # 相似度搜索

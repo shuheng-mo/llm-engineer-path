@@ -14,6 +14,11 @@ from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_core.stores import InMemoryStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 embeddings = DashScopeEmbeddings(
@@ -35,7 +40,7 @@ retriever = ParentDocumentRetriever(
     parent_splitter=parent_splitter,
 )
 
-loader = PyPDFLoader("docs/LangChain.pdf")
+loader = PyPDFLoader(str(DATA_DIR / "LangChain.pdf"))
 documents = loader.load()
 retriever.add_documents(documents)
 

@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 embeddings = DashScopeEmbeddings(
@@ -16,7 +21,7 @@ embeddings = DashScopeEmbeddings(
 
 # 直接打开已有数据库（不会重新写入）
 vectorstore = Chroma(
-    persist_directory="./chroma_db",
+    persist_directory=str(DATA_DIR / "chroma_db"),
     embedding_function=embeddings,
     collection_name="knowledge_base",
 )

@@ -2,6 +2,7 @@
 
 对应课程章节：一 / 5.3.3
 """
+
 import os
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
@@ -32,7 +33,7 @@ vectorstore = Chroma.from_documents(documents=documents, embedding=embeddings)
 results = vectorstore.similarity_search(
     query="基础",
     k=5,
-    # filter={"category": "programming"},  # 只搜索编程类文档
+    filter={"category": "programming"},  # 只搜索编程类文档1
 )
 
 for idx, doc in enumerate(results, 1):

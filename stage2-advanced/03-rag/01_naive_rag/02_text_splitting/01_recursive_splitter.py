@@ -11,10 +11,15 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import logging
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 logging.getLogger("pypdf").setLevel(logging.ERROR)
 
-# loader = PyPDFLoader("../../data/aie-market-analysis.pdf")
-loader = PyMuPDFLoader("../../data/文档1.pdf")  # 中文效果比pypdf更加鲁棒
+# loader = PyPDFLoader(str(DATA_DIR / "aie-market-analysis.pdf"))
+loader = PyMuPDFLoader(str(DATA_DIR / "文档1.pdf"))  # 中文效果比pypdf更加鲁棒
 pages = loader.load()
 
 text = ""

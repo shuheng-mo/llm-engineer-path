@@ -17,6 +17,11 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 
@@ -82,7 +87,7 @@ class PDFReadingAssistant:
         vectorstore = Chroma.from_documents(
             documents=chunks,
             embedding=self.embeddings,
-            persist_directory="./pdf_assistant_db",
+            persist_directory=str(DATA_DIR / "pdf_assistant_db"),
         )
         print("💾 向量数据库创建完成")
         return vectorstore
@@ -145,7 +150,7 @@ class PDFReadingAssistant:
 
 
 def main():
-    assistant = PDFReadingAssistant(pdf_directory="docs")
+    assistant = PDFReadingAssistant(pdf_directory=str(DATA_DIR))
 
     print("\n💡 提示：输入问题开始对话，输入 'quit' 退出，输入 'clear' 清除历史\n")
 

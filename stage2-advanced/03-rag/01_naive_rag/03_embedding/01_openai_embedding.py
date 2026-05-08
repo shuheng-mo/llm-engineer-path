@@ -2,6 +2,7 @@
 
 对应课程章节：一 / 4.3.1
 """
+
 from langchain_openai import OpenAIEmbeddings
 
 # 初始化 Embedding 模型（api_key 从环境变量 OPENAI_API_KEY 自动读取）

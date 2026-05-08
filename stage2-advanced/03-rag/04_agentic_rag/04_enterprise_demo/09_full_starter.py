@@ -20,6 +20,11 @@ from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 # =============================================================================
 # 0) 环境与模型
 # =============================================================================
@@ -66,7 +71,7 @@ def build_vectorstore_from_md(
 
 
 print("--- [系统启动] 正在初始化向量数据库（从MD加载）---")
-vectorstore = build_vectorstore_from_md(md_dir="./data_md", persist_dir="./chroma_db")
+vectorstore = build_vectorstore_from_md(md_dir=str(DATA_DIR), persist_dir=str(DATA_DIR / "chroma_db"))
 retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 print("--- [系统启动] 向量数据库准备完毕 ---")
 

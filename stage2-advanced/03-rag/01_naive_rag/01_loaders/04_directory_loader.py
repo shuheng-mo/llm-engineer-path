@@ -5,9 +5,14 @@
 
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 # 加载目录下所有 .txt 文件
 loader = DirectoryLoader(
-    path="./documents/",
+    path=str(DATA_DIR),
     glob="**/*.txt",  # 匹配模式
     loader_cls=TextLoader,  # 使用的加载器类
     show_progress=True,  # 显示进度条

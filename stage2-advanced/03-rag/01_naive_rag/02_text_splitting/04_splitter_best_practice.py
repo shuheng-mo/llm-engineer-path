@@ -6,8 +6,13 @@
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 # 1. 加载文档
-loader = PyMuPDFLoader("../../data/文档1.pdf")
+loader = PyMuPDFLoader(str(DATA_DIR / "文档1.pdf"))
 documents = loader.load()
 
 # 2. 创建分割器（推荐配置）

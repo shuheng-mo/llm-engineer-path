@@ -8,8 +8,13 @@ uv pip install pypdf
 
 from langchain_community.document_loaders import PyPDFLoader
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 # 加载单个 PDF 文件
-loader = PyPDFLoader("../../data/文档1.pdf")
+loader = PyPDFLoader(str(DATA_DIR / "文档1.pdf"))
 pages = loader.load()
 
 # 查看加载结果

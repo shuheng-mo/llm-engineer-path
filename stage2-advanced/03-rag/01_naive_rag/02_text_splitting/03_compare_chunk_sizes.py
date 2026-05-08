@@ -6,7 +6,12 @@
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-loader = TextLoader("../../README.md", encoding="utf-8")
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
+loader = TextLoader(str(DATA_DIR.parent / "README.md"), encoding="utf-8")
 pages = loader.load()
 
 text = ""

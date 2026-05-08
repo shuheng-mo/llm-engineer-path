@@ -6,13 +6,18 @@
 from langchain_community.document_loaders import TextLoader
 
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 def process_document(doc):
     print(doc.page_content)
 
 
 # 处理编码问题
 loader = TextLoader(
-    "docs/RAG课程大纲.md",
+    str(DATA_DIR.parent / "README.md"),
     encoding="utf-8",  # 显式指定编码
     autodetect_encoding=True,  # 或自动检测
 )

@@ -10,6 +10,11 @@ from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 
@@ -149,7 +154,7 @@ if __name__ == "__main__":
         model="text-embedding-v1",
         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
     )
-    vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
+    vectorstore = Chroma(persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
     self_rag = SelfRAG(retriever)
 

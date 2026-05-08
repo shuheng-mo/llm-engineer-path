@@ -2,6 +2,7 @@
 
 对应课程章节：一 / 5.3.1（from_documents 用法）
 """
+
 import os
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
@@ -9,10 +10,15 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 # 1. 加载文档
-loader = PyPDFLoader("docs/LangChain.pdf")
+loader = PyPDFLoader(str(DATA_DIR / "LangChain.pdf"))
 documents = loader.load()
 
 # 2. 切分
@@ -33,7 +39,7 @@ embeddings = DashScopeEmbeddings(
 vectorstore = Chroma.from_documents(
     documents=chunks,
     embedding=embeddings,
-    persist_directory="./chroma_db",
+    persist_directory=str(DATA_DIR / "chroma_db"),
     collection_name="knowledge_base",
 )
 

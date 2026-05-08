@@ -6,7 +6,12 @@
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import TokenTextSplitter
 
-loader = PyMuPDFLoader("../../data/文档1.pdf")
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
+loader = PyMuPDFLoader(str(DATA_DIR / "文档1.pdf"))
 pages = loader.load()
 
 text = ""

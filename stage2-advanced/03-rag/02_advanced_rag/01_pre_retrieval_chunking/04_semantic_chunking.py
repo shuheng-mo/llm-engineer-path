@@ -11,6 +11,11 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
 
+
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 load_dotenv()
 
 embeddings = DashScopeEmbeddings(
@@ -25,7 +30,7 @@ semantic_splitter = SemanticChunker(
     buffer_size=1,
 )
 
-loader = PyPDFLoader("docs/LangChain.pdf")
+loader = PyPDFLoader(str(DATA_DIR / "LangChain.pdf"))
 documents = loader.load()
 full_text = "\n".join(doc.page_content for doc in documents)
 
