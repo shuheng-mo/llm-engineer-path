@@ -4,10 +4,17 @@
 """
 import json
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
+from langchain_chroma import Chroma
+from langchain_community.embeddings import DashScopeEmbeddings
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 load_dotenv()
 
@@ -67,6 +74,45 @@ def decomposed_rag(question: str, retriever, rag_chain) -> str:
     return llm.invoke(summary_prompt).content
 
 
+RAG_PROMPT = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """你是一个专业的文档问答助手。
+
+参考资料：
+{context}
+
+请根据上述参考资料回答问题。如果资料中没有相关信息，请说明。""",
+    ),
+    ("human", "{question}"),
+])
+
+
+def format_docs(docs):
+    return "\n\n---\n\n".join(
+        f"[文档片段 {i + 1}]\n{doc.page_content}"
+        for i, doc in enumerate(docs)
+    )
+
+
 if __name__ == "__main__":
-    # 把你的 retriever / rag_chain 传进去运行
-    pass
+    embeddings = DashScopeEmbeddings(
+        model="text-embedding-v1",
+        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
+    )
+    vectorstore = Chroma(
+        persist_directory=str(DATA_DIR / "chroma_db"),
+        embedding_function=embeddings,
+    )
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
+
+    rag_chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | RAG_PROMPT
+        | llm
+        | StrOutputParser()
+    )
+
+    complex_question = "对比LangChain和LlamaIndex,哪个更适合构建客服问答系统"
+    answer = decomposed_rag(complex_question, retriever=retriever, rag_chain=rag_chain)
+    print(answer)

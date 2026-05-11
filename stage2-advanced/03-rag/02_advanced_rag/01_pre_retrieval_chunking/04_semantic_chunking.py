@@ -19,7 +19,7 @@ DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 load_dotenv()
 
 embeddings = DashScopeEmbeddings(
-    model="text-embedding-v1",
+    model="text-embedding-v3",
     dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
 )
 
@@ -28,6 +28,7 @@ semantic_splitter = SemanticChunker(
     breakpoint_threshold_type="percentile",
     breakpoint_threshold_amount=90,
     buffer_size=1,
+    sentence_split_regex=r"(?<=[。！？.!?])\s*",
 )
 
 loader = PyPDFLoader(str(DATA_DIR / "LangChain.pdf"))
