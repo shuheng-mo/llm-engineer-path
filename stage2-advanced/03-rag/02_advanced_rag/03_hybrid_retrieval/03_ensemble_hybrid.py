@@ -1,11 +1,12 @@
-"""EnsembleRetriever — 把 BM25 和向量检索按权重融合
+"""EnsembleRetriever — 把 BM25 和向量检索按权重融合，并对比三种检索效果
 
-对应课程章节：二 / 3.4 第一步~第二步
+对应课程章节：二 / 3.4
 
 依赖:
 uv pip install langchain-classic
 """
 import os
+
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_classic.retrievers import EnsembleRetriever
@@ -27,25 +28,38 @@ documents = [
 splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
 chunks = splitter.split_documents(documents)
 
+# 关键词检索 BM25（构建方式参考 02_bm25_vs_vector.py）
+bm25_retriever = BM25Retriever.from_documents(chunks)
+bm25_retriever.k = 4
+
+# 向量检索（构建方式参考 02_bm25_vs_vector.py）
 embeddings = DashScopeEmbeddings(
     model="text-embedding-v1",
     dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
 )
-
-# 关键词检索
-bm25_retriever = BM25Retriever.from_documents(chunks)
-bm25_retriever.k = 4
-
-# 向量检索
 vectorstore = Chroma.from_documents(chunks, embeddings)
 vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 
-# 混合：weights 加起来 = 1
+# 混合检索：weights 加起来 = 1
 ensemble_retriever = EnsembleRetriever(
     retrievers=[bm25_retriever, vector_retriever],
-    weights=[0.4, 0.6],   # BM25 40%，向量 60%
+    weights=[0.4, 0.6],  # BM25 40%，向量 60%
 )
 
-results = ensemble_retriever.invoke("RecursiveCharacterTextSplitter 怎么用？")
-for i, doc in enumerate(results, 1):
-    print(f"{i}. {doc.page_content[:80]}...")
+
+def _show(label: str, results) -> None:
+    print(f"\n{label}:")
+    for i, doc in enumerate(results[:3]):
+        has = "RecursiveCharacterTextSplitter" in doc.page_content
+        print(f"   {i + 1}. {'YES' if has else 'NO'} {doc.page_content[:60]}...")
+
+
+if __name__ == "__main__":
+    query = "RecursiveCharacterTextSplitter 怎么用？"
+    print("=" * 60)
+    print(f" 查询: {query}")
+    print("=" * 60)
+
+    _show("BM25 检索结果（关键词匹配）", bm25_retriever.invoke(query))
+    _show("向量检索结果（语义相似）", vector_retriever.invoke(query))
+    _show("混合检索结果（综合）", ensemble_retriever.invoke(query))
