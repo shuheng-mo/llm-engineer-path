@@ -1,0 +1,42 @@
+[
+  {
+    "user_input": "LangChain 是什么？它解决了什么核心问题？",
+    "reference": "LangChain 是一个开源的 LLM 应用开发框架，通过统一接口把模型、Prompt、外部工具、记忆系统、向量数据库等组件组合起来，解决了三个核心问题：Provider 抽象（一次编写、多模型切换）、组合（用统一的 Runnable 接口串联多步骤）、生产化（流式、批处理、可观测性内置）。"
+  },
+  {
+    "user_input": "什么是 LCEL？它的核心抽象是什么？",
+    "reference": "LCEL（LangChain Expression Language）是 LangChain v0.1+ 引入的核心抽象。无论是 Prompt 模板、模型调用、解析器还是完整 RAG 流水线，都实现同一个 Runnable 接口，支持 invoke / batch / stream 三种执行方式（以及异步版本），并通过 | 操作符自由组合。"
+  },
+  {
+    "user_input": "LangChain 中有哪几种 Runnable 组合方式？",
+    "reference": "LCEL 提供五种核心组合 Runnable：RunnableSequence（顺序链，用 | 操作符）、RunnableParallel（并行处理，输出 dict）、RunnableBranch（条件分支，类似 if/elif/else）、RunnablePassthrough（数据透传，常用于 RAG 中同时保留原始输入和检索结果）、RunnableLambda（把任意 Python 函数包装成 Runnable）。"
+  },
+  {
+    "user_input": "ChatModel 和 LLM 这两类模型有什么区别？",
+    "reference": "LLM 是传统的 completion 接口，输入字符串、输出字符串。ChatModel 是对话接口，输入消息列表（每条带 role），输出 AI 消息。现代主流模型（GPT-4 / Claude / Qwen 等）都走 ChatModel 范式，LLM 接口主要保留给老的 davinci 类模型。"
+  },
+  {
+    "user_input": "RAG 的四代范式演进是怎样的？",
+    "reference": "RAG 经过四代演进：Naive RAG（文档→切分→embedding→向量库→检索→prompt→模型）；Advanced RAG（加查询改写、混合检索、重排序、上下文压缩）；Graph RAG（用知识图谱组织实体关系，支持全局推理）；Agentic RAG（把检索作为 Agent 的工具，模型决定何时检索、查什么）。"
+  },
+  {
+    "user_input": "RAG 系统的五大核心组件是什么？",
+    "reference": "RAG 的五大组件：DocumentLoader（把各种格式的源数据加载成 Document 对象）、TextSplitter（切分文档，推荐 RecursiveCharacterTextSplitter）、Embeddings（文本转向量）、VectorStore（存向量并支持相似度检索）、Retriever（包装向量库的查询接口，可用 as_retriever() 转换）。"
+  },
+  {
+    "user_input": "Advanced RAG 有哪些常用的检索优化技术？",
+    "reference": "Advanced RAG 常用优化包括：查询改写（Query Rewriting，把口语化问题改为检索友好形式）、Multi-Query（一个问题生成多个角度查询）、HyDE（用 LLM 先写假设答案再检索）、混合检索（BM25 + 向量 + RRF 融合）、重排序（用 Cross-Encoder 精排候选）、Long Context Reorder（缓解 Lost in the Middle）。"
+  },
+  {
+    "user_input": "LangGraph 和 LCEL 的区别是什么？分别适合什么场景？",
+    "reference": "LCEL 适合无环、单向数据流（如标准 RAG、prompt|model|parser 这种）。LangGraph 适合带环、带状态、需要人机协作的工作流（如 Agent、复杂 ReAct、审批流）。两者不冲突，可以在 LangGraph 节点里调用 LCEL chain。"
+  },
+  {
+    "user_input": "LangChain 中的 Tool 是什么？定义 Tool 的三个关键要素？",
+    "reference": "Tool 是一个可以被 LLM 调用的函数。定义需要三要素：函数名、参数 schema、用途说明（docstring）。其中 docstring 最关键，因为它是 LLM 决策什么时候用这个工具的唯一依据。简单工具用 @tool 装饰器即可定义。"
+  },
+  {
+    "user_input": "短期记忆和长期记忆在 LangChain 中分别如何实现？",
+    "reference": "短期记忆（Session Memory）保存当前对话的消息历史，存在 Redis 或内存里，推荐用 RunnableWithMessageHistory 包装链。长期记忆（Long-term Memory）跨会话、跨用户保留，常见实现有两种：向量化存储关键事实（用 Vector DB），或维护结构化用户画像（用 PostgreSQL）。实战中两者常结合使用。"
+  }
+]

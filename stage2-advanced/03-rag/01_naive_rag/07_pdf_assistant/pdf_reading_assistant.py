@@ -2,7 +2,9 @@
 
 对应课程章节：一 / 8.5
 """
+
 import os
+import logging
 from typing import List
 
 from dotenv import load_dotenv
@@ -19,6 +21,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 from pathlib import Path
+
+logging.getLogger("pypdf").setLevel(logging.ERROR)
+
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
@@ -105,10 +110,11 @@ class PDFReadingAssistant:
         return "\n\n---\n\n".join(formatted)
 
     def _create_rag_chain(self):
-        prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """你是一个专业的 PDF 文档阅读助手。你的任务是根据提供的文档内容回答用户问题。
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """你是一个专业的 PDF 文档阅读助手。你的任务是根据提供的文档内容回答用户问题。
 
 规则：
 1. 只使用提供的文档内容回答问题
@@ -118,10 +124,11 @@ class PDFReadingAssistant:
 
 参考文档：
 {context}""",
-            ),
-            MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "{question}"),
-        ])
+                ),
+                MessagesPlaceholder(variable_name="chat_history"),
+                ("human", "{question}"),
+            ]
+        )
 
         return (
             {
@@ -143,6 +150,26 @@ class PDFReadingAssistant:
             self.chat_history = self.chat_history[-10:]
 
         return answer
+
+    def ask_with_contexts(self, question: str) -> tuple[str, list[str]]:
+        """像 ask() 一样回答，但同时返回检索到的上下文片段（专为 Ragas 评估准备）。
+
+        Ragas 的 SingleTurnSample 需要：
+          - response：LLM 生成的回答
+          - retrieved_contexts：检索器返回的纯文本片段列表
+
+        Returns:
+            (answer, retrieved_contexts) 元组
+        """
+        # 用 retriever 拿到原始 Document 列表（和 rag_chain 内部用的是同一个 retriever，
+        # 不会"作弊"——检索结果完全一致）
+        retrieved_docs = self.retriever.invoke(question)
+        retrieved_contexts = [doc.page_content for doc in retrieved_docs]
+
+        # 复用 ask() 拿到回答（自动维护 chat_history，但评估时应在外部 clear_history）
+        answer = self.ask(question)
+
+        return answer, retrieved_contexts
 
     def clear_history(self):
         self.chat_history = []
