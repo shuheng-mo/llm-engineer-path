@@ -4,7 +4,7 @@
 2. RAG的基本流程：
 
 ```
-文档 → Chunk → Embedding → Vector Store → Retrieve → Prompt → Model → Answer
+文档 → Chunk → Embedding → Vector Store → (Query Embedding) → Retrieve → Prompt → Model → Answer
 ```
 
 需要注意的是Embedding Model在这个过程中很重要，文本片段向量化以及用户提问转查询向量化都依赖于Embedding Model的质量。
@@ -13,7 +13,7 @@
 
 1. 编码：确保文件编码正确，常见的编码格式有UTF-8、GBK等。错误的编码可能导致文本内容无法正确读取。
 2. 大文件处理：大文件一次性加载内存可能溢出，懒加载、分批处理以及流式处理是常见的解决方案。
-3. PDF中出现复杂结构：PDF文件可能包含表格、图像等复杂结构，使用专门的PDF解析库（如PyPDF2、pdfplumber、langchain的unstructured loader）可以更好地提取文本内容。
+3. PDF中出现复杂结构：PDF文件可能包含表格、图像等复杂结构，使用专门的PDF解析库（如PyPDF、pdfplumber、langchain的unstructured loader）可以更好地提取文本内容。
 4. 网页动态内容：如果需要从网页加载数据，可能会遇到动态内容加载的问题，使用Selenium、Playwright等工具可以模拟浏览器行为，获取完整的网页内容跳过js渲染的内容无法获取的问题。
 
 ## 文本分割
@@ -43,14 +43,13 @@
 | text-embedding-3-large  | OpenAI      | 3072 | 最高精度           | 高精度需求   |
 | bge-large-zh            | HuggingFace | 1024 | 中文优化           | 中文场景     |
 | bge-m3                  | HuggingFace | 1024 | 多语言支持         | 多语言场景   |
-| DeepSeek Embedding      | DeepSeek    | 1024 | 成本极低           | 预算有限     |
 
 ## 向量数据库
 
 向量数据库主要4件事：
 
 1. 存储向量：将文本块的向量表示存储在数据库中，通常使用高效的数据结构来支持快速查询。
-2. 索引构建：构建索引以加速向量检索，常见的索引方法包括树结构、哈希表等。
+2. 索引构建：构建索引以加速向量检索，常见的索引方法包括树结构、哈希表等 (HNSW、IVF、PQ和FLAT为主)。
 3. 向量检索：根据用户查询的向量表示，检索与之相似的文本块，通常使用距离度量（如欧氏距离、余弦相似度、点积）来衡量向量之间的相似度，最后返回Top K个最相似的文本块。
 4. 更新和维护：支持向量的更新和维护，包括添加新的向量、删除旧的向量以及重新构建索引等操作。
 
@@ -64,7 +63,7 @@
 | Milvus     | 分布式       | 开源，支持海量数据    | 企业级大规模部署            |
 | Weaviate   | 云/自托管    | 支持混合搜索          | 需要关键词+向量混合检索     |
 
-从上手的容用程度来说，Chroma是最简单的，FAISS需要一定的环境配置，Pinecone则完全免维护，Milvus和Weaviate适合有分布式需求的企业用户。该项目我们使用Chroma作为示例，后续可以根据需要切换到其他数据库。（参考`stage2-advanced/03-rag/01_naive_rag/04_vector_store/01_chroma_from_texts.py`等。）
+从上手的容用程度来说，Chroma是最简单的，Pinecone需要一定的环境配置，FAISS则完全免维护，Milvus和Weaviate适合有分布式需求的企业用户。该项目我们使用Chroma作为示例，后续可以根据需要切换到其他数据库。（参考`stage2-advanced/03-rag/01_naive_rag/04_vector_store/01_chroma_from_texts.py`等。）
 
 ### chroma四种构建索引方式的对比
 
