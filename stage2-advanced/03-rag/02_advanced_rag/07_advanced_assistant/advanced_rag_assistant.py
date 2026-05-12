@@ -4,9 +4,12 @@
 """
 import os
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 from dotenv import load_dotenv
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 # ========== LangChain v1.0 核心导入 ==========
 from langchain_core.documents import Document
@@ -410,10 +413,6 @@ def main():
         except Exception as e:
             print(f"❌ 发生错误: {e}")
             import traceback
-
-from pathlib import Path
-
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
             traceback.print_exc()
 

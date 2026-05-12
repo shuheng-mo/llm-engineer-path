@@ -46,7 +46,7 @@ class SelfRAG:
         self.is_relevant_prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
-                "判断检索结果是否与问题相关，即是否包含回答问题所需的信息。\n只回答"相关"或"不相关"。",
+                '判断检索结果是否与问题相关，即是否包含回答问题所需的信息。\n只回答"相关"或"不相关"。',
             ),
             ("human", "问题：{question}\n\n检索结果：\n{context}"),
         ])
@@ -54,7 +54,7 @@ class SelfRAG:
         self.is_supported_prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
-                "判断答案中的信息是否都能在参考文档中找到依据。\n如果答案包含参考文档中没有的信息，则"无依据"。\n只回答"有依据"或"无依据"。",
+                '判断答案中的信息是否都能在参考文档中找到依据。\n如果答案包含参考文档中没有的信息，则"无依据"。\n只回答"有依据"或"无依据"。',
             ),
             ("human", "参考文档：\n{context}\n\n答案：\n{answer}"),
         ])
@@ -62,7 +62,7 @@ class SelfRAG:
         self.is_useful_prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
-                "判断答案是否有效回答了问题。\n有用的答案应该直接、具体、可操作。\n只回答"有用"或"无用"。",
+                '判断答案是否有效回答了问题。\n有用的答案应该直接、具体、可操作。\n只回答"有用"或"无用"。',
             ),
             ("human", "问题：{question}\n\n答案：{answer}"),
         ])
