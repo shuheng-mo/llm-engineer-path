@@ -88,3 +88,87 @@ uv run python <script.py>      # 不激活 venv 直接运行
 ```
 
 详细命令与 dependency-group → 模块映射见 [CLAUDE.md](./CLAUDE.md)。
+
+---
+
+## Git 提交规范（pre-commit + Conventional Commits）
+
+仓库通过 [pre-commit](https://pre-commit.com/) 在 git 钩子里跑两件事：
+
+1. **`commit-msg` 阶段** —— 用 [`conventional-pre-commit`](https://github.com/compilerla/conventional-pre-commit) 校验 commit message 必须以 `feat: / fix: / chore: ...` 开头。
+2. **`pre-commit` 阶段** —— 跑 `ruff-format`（代码格式化）+ 通用小检查（行尾空格、文件末尾换行、YAML/TOML 语法、超大文件守门）。
+
+> 配置文件：[`.pre-commit-config.yaml`](./.pre-commit-config.yaml) · `pre-commit` 已写入 `pyproject.toml` 的 `dev` group。
+
+### 一次性激活（克隆到新机器后必跑）
+
+```bash
+uv sync                                                              # 先把 dev 依赖装上（包含 pre-commit）
+uv run pre-commit install --hook-type commit-msg --hook-type pre-commit  # 把钩子写进 .git/hooks/
+uv run pre-commit run --all-files                                    # 可选：第一次对全仓库走一遍
+```
+
+> 第三步首次会比较慢，pre-commit 要拉取各 hook 仓库并建沙盒；之后都走缓存。
+
+### 日常使用
+
+```bash
+git commit -m "随便写一句"
+# ✗ subject does not start with conventional commit type — 被拒
+
+git commit -m "feat: 添加 LangGraph 多 Agent 路由示例"
+# ✓ 通过；同时 ruff-format 会自动格式化已 stage 的 .py 文件
+```
+
+如果 ruff-format **改了文件**，commit 会先失败、提示你把修改过的文件重新 `git add` 再 commit —— 这是 pre-commit 的正常行为，不是 bug。
+
+### 允许的 commit type
+
+`feat` / `fix` / `chore` / `docs` / `refactor` / `test` / `perf` / `style` / `build` / `ci` / `revert`
+
+格式约定（来自 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)）：
+
+```text
+<type>(<可选 scope>): <祈使语气、小写、不带句号、≤72 字符>
+
+<可选 body：解释为什么这么改，不是改了什么>
+```
+
+例：
+
+- `feat(rag): 实现 RRF 融合算法`
+- `fix(langgraph): checkpoint 在 Postgres 异步场景下漏写`
+- `chore: 升级 langchain 到 0.3.20`
+- `docs: 补充 Agentic RAG 笔记`
+
+### 紧急绕过（不推荐）
+
+```bash
+git commit --no-verify -m "..."   # 跳过所有 hook
+```
+
+仅在你明确知道某个 hook 误报、且会马上修的场景用。**不要用 `--no-verify` 来"省事"**——规范靠绕过就崩了。
+
+### 为什么 ruff lint 没开
+
+本仓库是按编号顺序展开的**教学代码**：
+
+- `05_run_demo.py` 故意引用 `04_supervisor.py` 里定义的名字 → ruff 报 `F821 Undefined name`，但其实是有意为之
+- 大量文件先写长 docstring / `load_dotenv()` 再 import → ruff 报 `E402`，但这是教学风格
+
+所以 `.pre-commit-config.yaml` 里**只跑 `ruff-format`，不跑 `ruff` lint**。想手动 lint 时：
+
+```bash
+uv run ruff check .          # 看一眼有什么问题
+uv run ruff check . --fix    # 顺手自动修可修的
+```
+
+### 想给 GitLens / VS Code 的 AI Commit 也加上 Conventional Commits 模板
+
+在 VS Code `settings.json` 里加：
+
+```json
+"gitlens.ai.generateCommitMessage.customInstructions": "Use Conventional Commits format. Start with one of: feat, fix, chore, docs, refactor, test, perf, style, build, ci, revert. Format: '<type>(<scope>): <imperative subject, lower case, no period, ≤72 chars>'. Body in Chinese if diff comments are Chinese, explain WHY not WHAT."
+```
+
+这样 AI 生成的 message 直接合规，pre-commit 也不会拒它。
