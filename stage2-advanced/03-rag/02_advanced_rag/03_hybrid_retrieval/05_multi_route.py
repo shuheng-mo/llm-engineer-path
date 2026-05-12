@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 3.6
 """
+
 import os
 from collections import defaultdict
 from dotenv import load_dotenv
@@ -64,16 +65,28 @@ class MultiRouteRetriever:
 
 if __name__ == "__main__":
     product_docs = [
-        Document(page_content="iPhone 15 采用 A16 芯片，电池容量 3349mAh，支持 20W 快充。正常使用续航约 10-12 小时。"),
-        Document(page_content="iPhone 15 Pro 采用 A17 Pro 芯片，电池容量 3274mAh，支持 USB-C 接口充电。"),
+        Document(
+            page_content="iPhone 15 采用 A16 芯片，电池容量 3349mAh，支持 20W 快充。正常使用续航约 10-12 小时。"
+        ),
+        Document(
+            page_content="iPhone 15 Pro 采用 A17 Pro 芯片，电池容量 3274mAh，支持 USB-C 接口充电。"
+        ),
     ]
     faq_docs = [
-        Document(page_content="Q: 手机电池不耐用怎么办？A: 1. 检查后台应用；2. 降低屏幕亮度；3. 开启省电模式；4. 如电池健康度低于80%建议更换。"),
-        Document(page_content="Q: 如何查看电池健康度？A: 进入设置 → 电池 → 电池健康度，可查看最大容量百分比。"),
+        Document(
+            page_content="Q: 手机电池不耐用怎么办？A: 1. 检查后台应用；2. 降低屏幕亮度；3. 开启省电模式；4. 如电池健康度低于80%建议更换。"
+        ),
+        Document(
+            page_content="Q: 如何查看电池健康度？A: 进入设置 → 电池 → 电池健康度，可查看最大容量百分比。"
+        ),
     ]
     ticket_docs = [
-        Document(page_content="工单记录：用户反馈 iPhone 15 电池掉电快，经检测电池健康度 78%，建议用户到店更换电池，问题解决。"),
-        Document(page_content="工单记录：用户反馈手机发热严重，排查发现是某 App 后台持续运行，关闭后恢复正常。"),
+        Document(
+            page_content="工单记录：用户反馈 iPhone 15 电池掉电快，经检测电池健康度 78%，建议用户到店更换电池，问题解决。"
+        ),
+        Document(
+            page_content="工单记录：用户反馈手机发热严重，排查发现是某 App 后台持续运行，关闭后恢复正常。"
+        ),
     ]
 
     retriever = MultiRouteRetriever()

@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 3.2
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -19,11 +20,13 @@ llm = ChatOpenAI(
     temperature=0.3,
 )
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "你是一个友好的AI助手，请记住用户告诉你的信息。"),
-    MessagesPlaceholder(variable_name="history"),
-    ("human", "{input}"),
-])
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是一个友好的AI助手，请记住用户告诉你的信息。"),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}"),
+    ]
+)
 
 runnable = prompt | llm
 

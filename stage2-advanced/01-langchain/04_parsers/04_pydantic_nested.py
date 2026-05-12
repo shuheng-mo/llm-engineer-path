@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 2.3 复杂嵌套
 """
+
 import os
 from typing import List, Optional
 
@@ -40,13 +41,16 @@ class PersonProfile(BaseModel):
 parser = PydanticOutputParser(pydantic_object=PersonProfile)
 print(parser.get_format_instructions())
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "你是一个信息抽取专家，请严格按照要求输出。\n{format_instructions}"),
-    ("human", "请根据以下文本生成完整人物档案：\n{text}"),
-])
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是一个信息抽取专家，请严格按照要求输出。\n{format_instructions}"),
+        ("human", "请根据以下文本生成完整人物档案：\n{text}"),
+    ]
+)
 
 model = init_chat_model(
-    model="qwen-plus", model_provider="openai",
+    model="qwen-plus",
+    model_provider="openai",
     api_key=os.getenv("DASHSCOPE_API_KEY"),
     base_url=os.getenv("DASHSCOPE_BASE_URL"),
     temperature=0,
@@ -62,10 +66,12 @@ text = """
 他是一名热爱技术的软件工程师，喜欢开源和分享。
 """
 
-result = chain.invoke({
-    "format_instructions": parser.get_format_instructions(),
-    "text": text,
-})
+result = chain.invoke(
+    {
+        "format_instructions": parser.get_format_instructions(),
+        "text": text,
+    }
+)
 
 print(type(result))
 print(result)

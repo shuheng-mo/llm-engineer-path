@@ -2,6 +2,7 @@
 
 对应课程章节：第八章 / 3.2.2
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -59,7 +60,11 @@ def chat_with_tools(query: str):
         tool_id = tool_call["id"]
 
         print(f"[调用工具] {tool_name}({tool_args})")
-        result = tool_map[tool_name].invoke(tool_args) if tool_name in tool_map else f"未知工具: {tool_name}"
+        result = (
+            tool_map[tool_name].invoke(tool_args)
+            if tool_name in tool_map
+            else f"未知工具: {tool_name}"
+        )
         print(f"[工具结果] {result}")
 
         messages.append(ToolMessage(content=str(result), tool_call_id=tool_id))

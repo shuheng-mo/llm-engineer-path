@@ -2,9 +2,8 @@
 
 对应课程章节：模块三 / 1.2.5
 """
-from langchain.agents import create_agent
+
 from langchain.tools import ToolRuntime, tool
-from langgraph.store.memory import InMemoryStore
 
 
 @tool

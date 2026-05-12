@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 4.4
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -48,16 +49,21 @@ def get_long_term_memory(user_id: str, query: str) -> str:
     return "\n".join(f"- {doc.page_content}" for doc in results)
 
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", """你是一个智能助手。
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个智能助手。
 
 ## 用户长期记忆（背景信息）
 {long_term_memory}
 
-请根据以上信息为用户提供个性化帮助。"""),
-    MessagesPlaceholder(variable_name="history"),         # 短期记忆
-    ("human", "{input}"),
-])
+请根据以上信息为用户提供个性化帮助。""",
+        ),
+        MessagesPlaceholder(variable_name="history"),  # 短期记忆
+        ("human", "{input}"),
+    ]
+)
 
 
 def create_chain_with_long_term_memory(user_id: str):

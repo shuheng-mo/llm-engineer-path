@@ -2,6 +2,8 @@
 
 对应课程章节：四 / 第四章 4.2
 """
+
+
 def retrieve(state):
     print("---NODE: 检索中---")
     question = state["question"]

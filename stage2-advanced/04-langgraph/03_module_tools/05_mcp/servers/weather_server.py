@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 4.3.2
 """
+
 from fastmcp import FastMCP
 from pydantic import BaseModel
 

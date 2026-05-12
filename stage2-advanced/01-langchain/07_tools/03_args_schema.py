@@ -2,6 +2,7 @@
 
 对应课程章节：第八章 / 2.2.2
 """
+
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 

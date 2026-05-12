@@ -55,9 +55,7 @@ embeddings = ResilientDashScopeEmbeddings(
     dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
 )
 
-vectorstore = Chroma(
-    persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings
-)
+vectorstore = Chroma(persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings)
 base_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
 multi_retriever = MultiQueryRetriever.from_llm(retriever=base_retriever, llm=llm)

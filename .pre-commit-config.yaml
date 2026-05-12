@@ -1,0 +1,48 @@
+# 运行 hook 的 git stage：
+#   commit-msg → 校验 commit message 是否符合 Conventional Commits
+#   pre-commit → 提交前跑 ruff lint + format
+# 启用一次即可（已在 README / CLAUDE.md 记录）：
+#   uv run pre-commit install --hook-type commit-msg --hook-type pre-commit
+
+repos:
+  # ── Conventional Commits 校验 ───────────────────────────────────────────
+  # 只允许 feat: / fix: / chore: ... 这些 type 开头，其余直接拒绝
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args:
+          - feat
+          - fix
+          - chore
+          - docs
+          - refactor
+          - test
+          - perf
+          - style
+          - build
+          - ci
+          - revert
+
+  # ── 代码格式化（Python） ────────────────────────────────────────────────
+  # 只跑 ruff-format（动空格/换行，零风险）。
+  # 不跑 ruff lint —— 本仓库是按编号顺序展开的教学代码：
+  #   - 05_run_demo.py 故意引用 04_supervisor.py 里的名字（F821 误报）
+  #   - 大量文件在 docstring / load_dotenv() 之后才 import（E402 误报）
+  # 想手动 lint 时直接 `uv run ruff check .` 即可。
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff-format
+
+  # ── 常用通用 hook ────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=2048]

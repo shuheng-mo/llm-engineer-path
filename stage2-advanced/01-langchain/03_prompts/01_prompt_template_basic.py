@@ -2,12 +2,11 @@
 
 对应课程章节：第四章 / 1.2
 """
+
 from langchain_core.prompts import PromptTemplate
 
 # 方式 1：from_template
-template = PromptTemplate.from_template(
-    "请将下面的文本翻译成{target_language}: \n\n{text}"
-)
+template = PromptTemplate.from_template("请将下面的文本翻译成{target_language}: \n\n{text}")
 print(template.input_variables)
 print(template.format(target_language="英文", text="人工智能正在改变世界"))
 

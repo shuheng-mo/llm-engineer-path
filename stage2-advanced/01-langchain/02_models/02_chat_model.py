@@ -2,6 +2,7 @@
 
 对应课程章节：第三章 / 1.3
 """
+
 import os
 
 from dotenv import load_dotenv

@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 3.3 完整 Redis
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -25,11 +26,13 @@ redis_password = os.getenv("REDIS_PASSWORD")
 redis_db = os.getenv("REDIS_DB", "15")
 REDIS_URL = f"redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "你是一个友好的AI助手，请记住用户告诉你的信息。"),
-    MessagesPlaceholder(variable_name="history"),
-    ("human", "{input}"),
-])
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是一个友好的AI助手，请记住用户告诉你的信息。"),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}"),
+    ]
+)
 
 runnable = prompt | llm
 
@@ -38,7 +41,7 @@ def get_session_history(session_id: str) -> RedisChatMessageHistory:
     return RedisChatMessageHistory(
         session_id=session_id,
         url=REDIS_URL,
-        ttl=3600,        # 1 小时后自动清理
+        ttl=3600,  # 1 小时后自动清理
     )
 
 

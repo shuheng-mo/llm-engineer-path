@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 1.1.2
 """
+
 from langchain.tools import tool
 
 
@@ -24,7 +25,7 @@ def get_weather(city: str) -> str:
 
 
 if __name__ == "__main__":
-    print(get_weather.name)             # get_weather
-    print(get_weather.description)      # 获取指定城市的天气信息...
+    print(get_weather.name)  # get_weather
+    print(get_weather.description)  # 获取指定城市的天气信息...
     result = get_weather.invoke({"city": "北京"})
-    print(result)                       # 晴天，25°C
+    print(result)  # 晴天，25°C

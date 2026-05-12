@@ -16,6 +16,7 @@
     on_parser_start    / on_parser_end          OutputParser 前后
     on_chain_start     / on_chain_end           整条链 / 子链的边界
 """
+
 import asyncio
 import os
 from pathlib import Path
@@ -61,10 +62,12 @@ def format_docs(docs):
     )
 
 
-RAG_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "你是文档问答助手。\n\n参考资料：\n{context}\n\n请根据资料回答问题。"),
-    ("human", "{question}"),
-])
+RAG_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是文档问答助手。\n\n参考资料：\n{context}\n\n请根据资料回答问题。"),
+        ("human", "{question}"),
+    ]
+)
 
 rag_chain = (
     {"context": retriever | format_docs, "question": RunnablePassthrough()}

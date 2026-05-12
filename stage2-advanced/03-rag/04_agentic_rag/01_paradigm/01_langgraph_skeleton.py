@@ -2,6 +2,7 @@
 
 对应课程章节：四 / 第一章 4.3.2
 """
+
 from typing import Literal
 
 from langchain_core.messages import BaseMessage  # noqa: F401

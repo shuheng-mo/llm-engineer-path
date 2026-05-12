@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 2.6
 """
+
 import json
 import os
 from pathlib import Path
@@ -25,10 +26,11 @@ llm = ChatOpenAI(
     temperature=0,
 )
 
-decompose_prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """将复杂问题分解为 2-4 个可以独立回答的简单子问题。
+decompose_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """将复杂问题分解为 2-4 个可以独立回答的简单子问题。
 
 【要求】
 - 每个子问题应该可以通过单次检索回答
@@ -38,9 +40,10 @@ decompose_prompt = ChatPromptTemplate.from_messages([
 【示例】
 原问题：对比 A 和 B 的优缺点，哪个更适合场景 X？
 输出：["A 的特点和优势", "B 的特点和优势", "A 和 B 的对比", "场景 X 的需求"]""",
-    ),
-    ("human", "{question}"),
-])
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
 def decompose_query(question: str) -> list:
@@ -74,24 +77,25 @@ def decomposed_rag(question: str, retriever, rag_chain) -> str:
     return llm.invoke(summary_prompt).content
 
 
-RAG_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """你是一个专业的文档问答助手。
+RAG_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个专业的文档问答助手。
 
 参考资料：
 {context}
 
 请根据上述参考资料回答问题。如果资料中没有相关信息，请说明。""",
-    ),
-    ("human", "{question}"),
-])
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
 def format_docs(docs):
     return "\n\n---\n\n".join(
-        f"[文档片段 {i + 1}]\n{doc.page_content}"
-        for i, doc in enumerate(docs)
+        f"[文档片段 {i + 1}]\n{doc.page_content}" for i, doc in enumerate(docs)
     )
 
 

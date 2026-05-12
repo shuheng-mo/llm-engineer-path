@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 3.5
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -22,10 +23,12 @@ def retrieve_docs(query: str) -> str:
     return f"[检索结果] 关于 '{query}' 的相关文档..."
 
 
-parallel = RunnableParallel({
-    "context": RunnableLambda(lambda x: retrieve_docs(x["question"])),
-    "question": RunnablePassthrough(),
-})
+parallel = RunnableParallel(
+    {
+        "context": RunnableLambda(lambda x: retrieve_docs(x["question"])),
+        "question": RunnablePassthrough(),
+    }
+)
 
 prompt = ChatPromptTemplate.from_template(
     """根据以下上下文回答问题：

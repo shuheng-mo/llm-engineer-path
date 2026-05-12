@@ -2,27 +2,31 @@
 
 对应课程章节：二 / 6.1
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 
 # 基础版：最简 RAG Prompt
-BASIC_RAG_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """你是一个问答助手。请根据以下参考文档回答问题。
+BASIC_RAG_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个问答助手。请根据以下参考文档回答问题。
 如果文档中没有相关信息，请说"根据提供的资料无法回答这个问题"。
 
 参考文档：
 {context}""",
-    ),
-    ("human", "{question}"),
-])
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
 # 进阶版：带引用编号的 Prompt
-CITATION_RAG_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """你是一个专业的文档问答助手。
+CITATION_RAG_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个专业的文档问答助手。
 
 【任务】根据参考文档回答用户问题
 
@@ -34,9 +38,10 @@ CITATION_RAG_PROMPT = ChatPromptTemplate.from_messages([
 
 【参考文档】
 {context}""",
-    ),
-    ("human", "{question}"),
-])
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
 def format_docs_with_id(docs):
@@ -48,10 +53,11 @@ def format_docs_with_id(docs):
 
 
 # 严格版：防幻觉 Prompt
-STRICT_RAG_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """你是一个严谨的问答助手。
+STRICT_RAG_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个严谨的问答助手。
 
 【核心原则】宁可说"不知道"，也不要编造答案
 
@@ -67,6 +73,7 @@ STRICT_RAG_PROMPT = ChatPromptTemplate.from_messages([
 【无法回答时的标准回复】
 "根据提供的参考文档，无法找到关于[问题主题]的相关信息。建议您查阅其他资料或提供更多相关文档。"
 """,
-    ),
-    ("human", "{question}"),
-])
+        ),
+        ("human", "{question}"),
+    ]
+)

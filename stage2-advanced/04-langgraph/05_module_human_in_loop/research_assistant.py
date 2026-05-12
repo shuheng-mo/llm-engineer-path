@@ -5,6 +5,7 @@
 依赖:
 uv pip install tavily-python
 """
+
 """
 研报助手 V4 - 人工审核闭环（单文件完整版）
 
@@ -129,7 +130,7 @@ workflow.add_edge("publisher", END)
 memory = MemorySaver()
 app_v4 = workflow.compile(
     checkpointer=memory,
-    interrupt_before=["human_review"],   # 关键：在人工审核节点前暂停
+    interrupt_before=["human_review"],  # 关键：在人工审核节点前暂停
 )
 
 

@@ -2,6 +2,7 @@
 
 对应课程章节：模块一 / 4.5 实践练习
 """
+
 import os
 from typing import TypedDict
 
@@ -29,10 +30,14 @@ def write_draft(state: AgentState) -> AgentState:
     topic = state["topic"]
     print(f"\n--- [Node 1] 正在为 '{topic}' 撰写初稿 ---")
 
-    response = llm.invoke([
-        SystemMessage(content="你是一个社交媒体助手。请根据用户的话题，写一段简单的描述，不要加表情包，50字以内。"),
-        HumanMessage(content=topic),
-    ])
+    response = llm.invoke(
+        [
+            SystemMessage(
+                content="你是一个社交媒体助手。请根据用户的话题，写一段简单的描述，不要加表情包，50字以内。"
+            ),
+            HumanMessage(content=topic),
+        ]
+    )
     return {"draft": response.content}
 
 
@@ -40,10 +45,14 @@ def polish_post(state: AgentState) -> AgentState:
     draft_text = state["draft"]
     print(f"--- [Node 2] 正在润色初稿: {draft_text[:20]}... ---")
 
-    response = llm.invoke([
-        SystemMessage(content="你是一个爆款文案专家。请将用户的文字改写得更有吸引力，添加3个Emoji，并加上2个Hashtag。"),
-        HumanMessage(content=draft_text),
-    ])
+    response = llm.invoke(
+        [
+            SystemMessage(
+                content="你是一个爆款文案专家。请将用户的文字改写得更有吸引力，添加3个Emoji，并加上2个Hashtag。"
+            ),
+            HumanMessage(content=draft_text),
+        ]
+    )
     return {"final_post": response.content}
 
 

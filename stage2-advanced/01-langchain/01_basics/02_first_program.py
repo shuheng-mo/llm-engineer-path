@@ -2,6 +2,7 @@
 
 对应课程章节：第二章 / 6.2
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -19,7 +20,7 @@ print("环境变量加载成功")
 
 # Step 2：初始化模型
 model = ChatTongyi(
-    model="qwen-plus",          # qwen-turbo / qwen-plus / qwen-max
+    model="qwen-plus",  # qwen-turbo / qwen-plus / qwen-max
     temperature=0.7,
     # max_tokens=1000,
 )

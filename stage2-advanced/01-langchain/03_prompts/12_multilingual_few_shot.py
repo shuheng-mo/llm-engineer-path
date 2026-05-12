@@ -2,6 +2,7 @@
 
 对应课程章节：第四章 / 3.4
 """
+
 from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
 
 multilingual_examples = {
@@ -33,11 +34,13 @@ def create_translation_prompt(target_lang: str) -> ChatPromptTemplate:
         examples=examples,
     )
 
-    return ChatPromptTemplate.from_messages([
-        ("system", f"你是一位专业翻译，请将英文翻译成{lang_names[target_lang]}。"),
-        few_shot_prompt,
-        ("human", "{text}"),
-    ])
+    return ChatPromptTemplate.from_messages(
+        [
+            ("system", f"你是一位专业翻译，请将英文翻译成{lang_names[target_lang]}。"),
+            few_shot_prompt,
+            ("human", "{text}"),
+        ]
+    )
 
 
 zh_prompt = create_translation_prompt("zh")

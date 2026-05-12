@@ -4,7 +4,7 @@
 """
 # from .05_compile_workflow import workflow
 
-result = workflow.invoke({"query": "如何认证API请求？"})           # noqa: F821
+result = workflow.invoke({"query": "如何认证API请求？"})  # noqa: F821
 
 print("原始查询：", result["query"])
 print("\n分类：")

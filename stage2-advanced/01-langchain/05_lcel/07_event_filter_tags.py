@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 4.5
 """
+
 import asyncio
 import os
 
@@ -28,7 +29,7 @@ async def main():
     async for event in chain.astream_events(
         {"topic": "AI"},
         version="v2",
-        include_tags=["llm"],          # 只看 llm 相关的事件
+        include_tags=["llm"],  # 只看 llm 相关的事件
     ):
         print(event)
 

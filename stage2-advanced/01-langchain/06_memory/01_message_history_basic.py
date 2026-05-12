@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 3.1
 """
+
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage
 

@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 4.1
 """
+
 import json
 import os
 import re
@@ -30,7 +31,7 @@ class RobustJsonParser:
         text = re.sub(r"```\s*", "", text)
         json_match = re.search(r"[\{\[]", text)
         if json_match:
-            text = text[json_match.start():]
+            text = text[json_match.start() :]
         for i in range(len(text) - 1, -1, -1):
             if text[i] in "}]":
                 text = text[: i + 1]
@@ -80,10 +81,10 @@ if __name__ == "__main__":
     parser = RobustJsonParser()
 
     test_cases = [
-        '```json\n{"name": "test"}\n```',          # Markdown 包裹
-        "{'name': 'test'}",                          # 单引号
-        '{"items": [1, 2, 3,]}',                     # 尾部逗号
-        'Here is the result: {"value": 42}',         # 前置文本
+        '```json\n{"name": "test"}\n```',  # Markdown 包裹
+        "{'name': 'test'}",  # 单引号
+        '{"items": [1, 2, 3,]}',  # 尾部逗号
+        'Here is the result: {"value": 42}',  # 前置文本
     ]
     for test in test_cases:
         result = parser.parse(test)

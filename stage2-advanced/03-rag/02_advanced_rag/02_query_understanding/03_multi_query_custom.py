@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 2.4 方式二
 """
+
 import os
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
@@ -21,10 +22,11 @@ llm = ChatOpenAI(
     temperature=0.7,
 )
 
-multi_query_prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """你的任务是生成 3 个不同角度的搜索查询，帮助更全面地检索相关文档。
+multi_query_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你的任务是生成 3 个不同角度的搜索查询，帮助更全面地检索相关文档。
 
 【要求】
 - 每个查询从不同角度切入（如：定义、原理、对比、应用）
@@ -37,9 +39,10 @@ multi_query_prompt = ChatPromptTemplate.from_messages([
 机器学习 定义 概念
 机器学习 算法 原理 工作方式
 机器学习 应用场景 案例""",
-    ),
-    ("human", "原问题：{question}"),
-])
+        ),
+        ("human", "原问题：{question}"),
+    ]
+)
 
 
 def generate_queries(question: str) -> list:
@@ -71,7 +74,9 @@ if __name__ == "__main__":
         model="text-embedding-v1",
         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
     )
-    vectorstore = Chroma(persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings)
+    vectorstore = Chroma(
+        persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings
+    )
     base_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
     print(multi_query_retrieve("什么是 RAG？", base_retriever))

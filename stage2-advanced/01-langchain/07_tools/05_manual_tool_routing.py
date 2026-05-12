@@ -2,6 +2,7 @@
 
 对应课程章节：第八章 / 3.1.1
 """
+
 import json
 import os
 
@@ -98,12 +99,14 @@ def process_query(query: str) -> str:
 
     final_messages = [
         SystemMessage(content="请根据工具执行结果，用自然语言回答用户的问题。"),
-        HumanMessage(content=f"""
+        HumanMessage(
+            content=f"""
 用户问题: {query}
 工具执行结果: {tool_result}
 
 请给出友好的回答：
-"""),
+"""
+        ),
     ]
     return llm.invoke(final_messages).content
 

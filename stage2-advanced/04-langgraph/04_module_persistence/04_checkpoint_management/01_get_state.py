@@ -2,6 +2,7 @@
 
 对应课程章节：模块四 / 5.1
 """
+
 config = {
     "configurable": {
         "thread_id": "session_user_123",

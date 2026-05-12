@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 5.4
 """
+
 from langchain_core.runnables import RunnableConfig
 
 config = RunnableConfig(

@@ -2,6 +2,7 @@
 
 对应课程章节：第八章 / 5.3
 """
+
 """多功能助手 - 完整实现：计算器、天气查询、翻译、文本分析"""
 import os
 from typing import Literal
@@ -145,7 +146,9 @@ class MultiToolAssistant:
             if verbose:
                 print(f"  📌 调用: {name}")
                 print(f"     参数: {args}")
-            result = self.tool_map[name].invoke(args) if name in self.tool_map else f"未知工具: {name}"
+            result = (
+                self.tool_map[name].invoke(args) if name in self.tool_map else f"未知工具: {name}"
+            )
             if verbose:
                 print(f"     结果: {result}")
             messages.append(ToolMessage(content=str(result), tool_call_id=tid))
@@ -170,7 +173,7 @@ def main():
         "北京和上海的天气怎么样？",
         "把'你好'翻译成英文",
         "分析一下这句话的情感：今天真是太开心了，考试成绩非常满意！",
-        "Python 是什么编程语言？",      # 不需要工具
+        "Python 是什么编程语言？",  # 不需要工具
     ]
 
     print("\n📝 运行预设测试用例:\n")

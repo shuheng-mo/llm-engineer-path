@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 6.3
 """
+
 import json
 import os
 
@@ -31,10 +32,11 @@ class AdaptiveRAG:
         self._init_prompts()
 
     def _init_prompts(self):
-        self.classify_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """将用户问题分类为以下三类之一：
+        self.classify_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """将用户问题分类为以下三类之一：
 
 【A类：无需检索】
 - 简单常识（"北京是哪国首都"）
@@ -55,14 +57,16 @@ class AdaptiveRAG:
 - 涉及多个实体/时间段的问题
 
 只返回分类结果，格式：{"type": "A/B/C", "reason": "简短原因"}""",
-            ),
-            ("human", "{question}"),
-        ])
+                ),
+                ("human", "{question}"),
+            ]
+        )
 
-        self.decompose_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """将复杂问题分解为 2-4 个可独立检索的子问题。
+        self.decompose_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """将复杂问题分解为 2-4 个可独立检索的子问题。
 
 要求：
 1. 每个子问题应该是具体的、可检索的
@@ -72,19 +76,23 @@ class AdaptiveRAG:
 示例：
 原问题："对比 React 和 Vue，哪个适合电商项目？"
 输出：["React 框架的特点和优势", "Vue 框架的特点和优势", "电商前端项目的技术需求"]""",
-            ),
-            ("human", "{question}"),
-        ])
+                ),
+                ("human", "{question}"),
+            ]
+        )
 
-        self.rag_prompt = ChatPromptTemplate.from_messages([
-            ("system", "根据参考文档回答问题。只使用文档中的信息。\n\n参考文档：\n{context}"),
-            ("human", "{question}"),
-        ])
+        self.rag_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "根据参考文档回答问题。只使用文档中的信息。\n\n参考文档：\n{context}"),
+                ("human", "{question}"),
+            ]
+        )
 
-        self.synthesize_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """基于以下子问题的回答，综合回答用户的原始问题。
+        self.synthesize_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """基于以下子问题的回答，综合回答用户的原始问题。
 
 要求：
 1. 整合各子问题的信息
@@ -95,9 +103,10 @@ class AdaptiveRAG:
 
 各子问题回答：
 {sub_answers}""",
-            ),
-            ("human", "请给出综合分析和最终答案。"),
-        ])
+                ),
+                ("human", "请给出综合分析和最终答案。"),
+            ]
+        )
 
     def _classify(self, question: str) -> dict:
         response = (self.classify_prompt | self.llm).invoke({"question": question})
@@ -116,7 +125,9 @@ class AdaptiveRAG:
     def _single_rag(self, question: str) -> str:
         docs = self.retriever.invoke(question)
         context = "\n\n".join(d.page_content for d in docs)
-        return (self.rag_prompt | self.llm).invoke({"question": question, "context": context}).content
+        return (
+            (self.rag_prompt | self.llm).invoke({"question": question, "context": context}).content
+        )
 
     def _multi_step_rag(self, question: str) -> str:
         sub_questions = self._decompose(question)
@@ -125,10 +136,16 @@ class AdaptiveRAG:
             print(f"      {i}. {sq}")
 
         sub_answers = [f"【{sq}】\n{self._single_rag(sq)}" for sq in sub_questions]
-        return (self.synthesize_prompt | self.llm).invoke({
-            "question": question,
-            "sub_answers": "\n\n".join(sub_answers),
-        }).content
+        return (
+            (self.synthesize_prompt | self.llm)
+            .invoke(
+                {
+                    "question": question,
+                    "sub_answers": "\n\n".join(sub_answers),
+                }
+            )
+            .content
+        )
 
     def query(self, question: str) -> dict:
         classification = self._classify(question)
@@ -161,7 +178,9 @@ if __name__ == "__main__":
         model="text-embedding-v1",
         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
     )
-    vectorstore = Chroma(persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings)
+    vectorstore = Chroma(
+        persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings
+    )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
     adaptive_rag = AdaptiveRAG(retriever)
 

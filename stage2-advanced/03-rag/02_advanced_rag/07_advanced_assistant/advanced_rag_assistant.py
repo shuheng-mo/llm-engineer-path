@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 7. 阶段总结实战
 """
+
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -28,6 +29,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 # ========== LangChain Classic / Cross-Encoder 可选 ==========
 try:
     from langchain_classic.retrievers import EnsembleRetriever, ParentDocumentRetriever  # noqa: F401
+
     LANGCHAIN_CLASSIC_AVAILABLE = True
 except ImportError:
     LANGCHAIN_CLASSIC_AVAILABLE = False
@@ -35,6 +37,7 @@ except ImportError:
 
 try:
     from sentence_transformers import CrossEncoder
+
     CROSS_ENCODER_AVAILABLE = True
 except ImportError:
     CROSS_ENCODER_AVAILABLE = False
@@ -127,7 +130,9 @@ class AdvancedRAGAssistant:
         print("   • 父文档检索: ✅")
         print(f"   • 查询优化: {'✅' if self.use_query_optimization else '❌'}")
         print(f"   • 混合检索: {'✅' if self.use_hybrid_search else '❌'}")
-        print(f"   • 重排序: {'✅ Cross-Encoder' if self.reranker else '✅ LLM Reranker' if self.use_reranker else '❌'}")
+        print(
+            f"   • 重排序: {'✅ Cross-Encoder' if self.reranker else '✅ LLM Reranker' if self.use_reranker else '❌'}"
+        )
         print(f"   • 上下文重排序: {'✅' if self.use_context_reorder else '❌'}")
         print("   • 带引用生成: ✅")
         print("=" * 60 + "\n")
@@ -155,11 +160,17 @@ class AdvancedRAGAssistant:
         for parent_idx, parent_doc in enumerate(parent_chunks):
             parent_doc.metadata["parent_idx"] = parent_idx
             parent_docs.append(parent_doc)
-            for child_idx, child_content in enumerate(self.child_splitter.split_text(parent_doc.page_content)):
+            for child_idx, child_content in enumerate(
+                self.child_splitter.split_text(parent_doc.page_content)
+            ):
                 child_id = f"parent_{parent_idx}_child_{child_idx}"
                 child_doc = Document(
                     page_content=child_content,
-                    metadata={**parent_doc.metadata, "child_id": child_id, "parent_idx": parent_idx},
+                    metadata={
+                        **parent_doc.metadata,
+                        "child_id": child_id,
+                        "parent_idx": parent_idx,
+                    },
                 )
                 child_docs.append(child_doc)
                 child_to_parent[child_id] = parent_idx
@@ -167,10 +178,11 @@ class AdvancedRAGAssistant:
         return parent_docs, child_docs, child_to_parent
 
     def _init_prompts(self):
-        self.rewrite_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """你是搜索查询优化专家。将用户的口语化问题改写为适合知识库检索的查询。
+        self.rewrite_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """你是搜索查询优化专家。将用户的口语化问题改写为适合知识库检索的查询。
 
 【改写规则】
 1. 去除口语词（啥、咋、啊、呢、吗）
@@ -179,25 +191,29 @@ class AdvancedRAGAssistant:
 4. 保持简洁，不超过 30 字
 
 只输出改写后的查询，无需解释。""",
-            ),
-            ("human", "{question}"),
-        ])
-        self.multi_query_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """生成 3 个不同角度的搜索查询，帮助更全面地检索相关文档。
+                ),
+                ("human", "{question}"),
+            ]
+        )
+        self.multi_query_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """生成 3 个不同角度的搜索查询，帮助更全面地检索相关文档。
 
 【要求】
 - 每个查询从不同角度切入（如：定义、原理、应用、对比）
 - 用换行分隔，不要编号
 - 直接输出查询，无需解释""",
-            ),
-            ("human", "原问题：{question}"),
-        ])
-        self.rag_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """你是一个专业的 PDF 文档阅读助手。
+                ),
+                ("human", "原问题：{question}"),
+            ]
+        )
+        self.rag_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """你是一个专业的 PDF 文档阅读助手。
 
 【任务】根据参考文档回答用户问题
 
@@ -209,23 +225,26 @@ class AdvancedRAGAssistant:
 
 【参考文档】
 {context}""",
-            ),
-            MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "{question}"),
-        ])
-        self.rerank_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """评估文档与查询的相关性，给出 0-10 的分数。
+                ),
+                MessagesPlaceholder(variable_name="chat_history"),
+                ("human", "{question}"),
+            ]
+        )
+        self.rerank_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """评估文档与查询的相关性，给出 0-10 的分数。
 只输出一个数字，不要有任何其他内容。
 
 评分标准：
 - 0-3：不相关
 - 4-6：部分相关
 - 7-10：高度相关""",
-            ),
-            ("human", "查询：{query}\n\n文档：{document}\n\n相关性分数："),
-        ])
+                ),
+                ("human", "查询：{query}\n\n文档：{document}\n\n相关性分数："),
+            ]
+        )
 
     # ── 查询优化 ──
     def _rewrite_query(self, question: str) -> str:
@@ -250,7 +269,9 @@ class AdvancedRAGAssistant:
     def _bm25_search(self, query: str) -> List[Document]:
         return self.bm25_retriever.invoke(query)
 
-    def _rrf_fusion(self, results_list: List[List[Document]], k: int = 60, top_n: int = 10) -> List[Document]:
+    def _rrf_fusion(
+        self, results_list: List[List[Document]], k: int = 60, top_n: int = 10
+    ) -> List[Document]:
         rrf_scores = defaultdict(float)
         doc_map = {}
         for results in results_list:
@@ -271,8 +292,14 @@ class AdvancedRAGAssistant:
 
     # ── 父文档 ──
     def _get_parent_documents(self, child_docs: List[Document]) -> List[Document]:
-        parent_indices = {doc.metadata.get("parent_idx") for doc in child_docs if doc.metadata.get("parent_idx") is not None}
-        return [self.parent_docs[idx] for idx in sorted(parent_indices) if idx < len(self.parent_docs)]
+        parent_indices = {
+            doc.metadata.get("parent_idx")
+            for doc in child_docs
+            if doc.metadata.get("parent_idx") is not None
+        }
+        return [
+            self.parent_docs[idx] for idx in sorted(parent_indices) if idx < len(self.parent_docs)
+        ]
 
     # ── 重排序 ──
     def _rerank_with_cross_encoder(self, query, docs, top_n=5):
@@ -284,7 +311,9 @@ class AdvancedRAGAssistant:
     def _rerank_with_llm(self, query, docs, top_n=5):
         scored = []
         for doc in docs:
-            response = (self.rerank_prompt | self.llm).invoke({"query": query, "document": doc.page_content[:500]})
+            response = (self.rerank_prompt | self.llm).invoke(
+                {"query": query, "document": doc.page_content[:500]}
+            )
             try:
                 score = float(response.content.strip())
             except Exception:
@@ -357,11 +386,13 @@ class AdvancedRAGAssistant:
             return "抱歉，未能找到与您问题相关的信息。"
 
         context = self._format_docs_with_citation(docs)
-        response = (self.rag_prompt | self.llm | StrOutputParser()).invoke({
-            "context": context,
-            "question": question,
-            "chat_history": self.chat_history,
-        })
+        response = (self.rag_prompt | self.llm | StrOutputParser()).invoke(
+            {
+                "context": context,
+                "question": question,
+                "chat_history": self.chat_history,
+            }
+        )
 
         self.chat_history.append(HumanMessage(content=question))
         self.chat_history.append(AIMessage(content=response))

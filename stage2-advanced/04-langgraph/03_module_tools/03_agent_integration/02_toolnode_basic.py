@@ -2,13 +2,14 @@
 
 对应课程章节：模块三 / 2.2.2
 """
+
 import os
 from datetime import datetime
 
 from dotenv import load_dotenv
 from langchain.tools import tool
 from langchain_community.chat_models import ChatTongyi
-from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph import START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
 load_dotenv()
@@ -41,7 +42,7 @@ def call_model(state: MessagesState):
 
 workflow = StateGraph(MessagesState)
 workflow.add_node("agent", call_model)
-workflow.add_node("tools", ToolNode(tools))     # 自动并行处理工具调用
+workflow.add_node("tools", ToolNode(tools))  # 自动并行处理工具调用
 
 workflow.add_edge(START, "agent")
 workflow.add_conditional_edges("agent", tools_condition)

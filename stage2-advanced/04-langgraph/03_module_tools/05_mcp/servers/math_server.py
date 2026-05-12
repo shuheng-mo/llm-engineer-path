@@ -5,6 +5,7 @@
 依赖:
 uv pip install fastmcp
 """
+
 from fastmcp import FastMCP
 
 mcp = FastMCP("Math")

@@ -20,6 +20,7 @@
                                                                     ▼
                                                           StrOutputParser → 答案
 """
+
 import os
 from pathlib import Path
 
@@ -75,8 +76,8 @@ documents = loader.load()
 # 优先按 \n\n（段落）切，切不下来再 \n（行），再 。/. （句子），最后字符级。
 # 这样能尽量保留语义边界。
 splitter = RecursiveCharacterTextSplitter(
-    chunk_size=400,         # 每 chunk 的最大字符数（不是 tokens！）
-    chunk_overlap=50,       # 相邻 chunk 重叠 50 字 → 避免边界处的句子被切断造成语义丢失
+    chunk_size=400,  # 每 chunk 的最大字符数（不是 tokens！）
+    chunk_overlap=50,  # 相邻 chunk 重叠 50 字 → 避免边界处的句子被切断造成语义丢失
     separators=["\n\n", "\n", "。", ".", " ", ""],
 )
 chunks = splitter.split_documents(documents)
@@ -127,8 +128,7 @@ retriever = vectorstore.as_retriever(
 # - 真实生产里通常还会带上 metadata（文件名、页码）方便追溯
 def format_docs(docs):
     return "\n\n---\n\n".join(
-        f"[文档片段 {i + 1}]\n{doc.page_content}"
-        for i, doc in enumerate(docs)
+        f"[文档片段 {i + 1}]\n{doc.page_content}" for i, doc in enumerate(docs)
     )
 
 
@@ -142,18 +142,20 @@ def format_docs(docs):
 #      这条很关键，没有它 LLM 会自由发挥编造答案
 #
 # 注意 {context} 和 {question} 都是模板变量，由后面 chain 的 dict 自动填充。
-RAG_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """你是一个专业的文档问答助手。
+RAG_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个专业的文档问答助手。
 
 参考资料：
 {context}
 
 请根据上述参考资料回答问题。如果资料中没有相关信息，请说明。""",
-    ),
-    ("human", "{question}"),
-])
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
 # ============================================================
@@ -179,12 +181,12 @@ RAG_PROMPT = ChatPromptTemplate.from_messages([
 # 没它的话 chain 输出会是 AIMessage 对象，调用方还要 .content 一下。
 rag_chain = (
     {
-        "context": retriever | format_docs,    # 检索 → 格式化
-        "question": RunnablePassthrough(),     # 透传
+        "context": retriever | format_docs,  # 检索 → 格式化
+        "question": RunnablePassthrough(),  # 透传
     }
-    | RAG_PROMPT                                # 用上面的 dict 填充模板变量
-    | llm                                       # 喂给 LLM
-    | StrOutputParser()                         # 提取 .content
+    | RAG_PROMPT  # 用上面的 dict 填充模板变量
+    | llm  # 喂给 LLM
+    | StrOutputParser()  # 提取 .content
 )
 
 

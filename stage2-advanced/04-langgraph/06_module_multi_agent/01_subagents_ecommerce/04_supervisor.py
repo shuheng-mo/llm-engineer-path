@@ -2,13 +2,14 @@
 
 对应课程章节：模块六 / 二 / Step 4
 """
+
 from langchain.agents import create_agent
 
 # from .02_subagents import model
 # from .03_wrap_as_tools import manage_product, create_campaign
 
 supervisor = create_agent(
-    model,                                    # noqa: F821
+    model,  # noqa: F821
     tools=[manage_product, create_campaign],  # noqa: F821
     system_prompt="""你是智能电商运营助手的协调者（Supervisor）。
 

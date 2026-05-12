@@ -20,9 +20,7 @@ embeddings = DashScopeEmbeddings(
     dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
 )
 
-vectorstore = Chroma(
-    persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings
-)
+vectorstore = Chroma(persist_directory=str(DATA_DIR / "chroma_db"), embedding_function=embeddings)
 
 # 默认检索器
 retriever = vectorstore.as_retriever()

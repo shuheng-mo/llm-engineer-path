@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 3.1
 """
+
 import os
 from typing import List, Optional
 
@@ -11,7 +12,9 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
-DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+DASHSCOPE_BASE_URL = (
+    os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+)
 
 
 class Product(BaseModel):
@@ -31,7 +34,8 @@ class OrderInfo(BaseModel):
 
 base_model = ChatOpenAI(
     model="qwen-plus",
-    api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+    api_key=DASHSCOPE_API_KEY,
+    base_url=DASHSCOPE_BASE_URL,
     temperature=0,
 )
 

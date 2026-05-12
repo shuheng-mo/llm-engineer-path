@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 四 / Step 3
 """
+
 from langchain.tools import tool
 
 # from .02_skills_definitions import SKILLS
@@ -17,9 +18,9 @@ def load_skill(skill_name: str) -> str:
     Args:
         skill_name: 要加载的技能名称（如 "sales_analytics", "inventory_management"）
     """
-    for skill in SKILLS:                                            # noqa: F821
+    for skill in SKILLS:  # noqa: F821
         if skill["name"] == skill_name:
             return f"✅ 已加载技能：{skill_name}\n\n{skill['content']}"
 
-    available = ", ".join(s["name"] for s in SKILLS)               # noqa: F821
+    available = ", ".join(s["name"] for s in SKILLS)  # noqa: F821
     return f"❌ 技能 '{skill_name}' 未找到。可用技能：{available}"

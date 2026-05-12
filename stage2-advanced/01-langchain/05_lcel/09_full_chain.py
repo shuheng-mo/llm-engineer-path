@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 5.2
 """
+
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI

@@ -2,6 +2,7 @@
 
 对应课程章节：第三章 / 5.4
 """
+
 import asyncio
 import os
 
@@ -15,8 +16,10 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL")
 
 async def batch_as_completed_demo():
     model = init_chat_model(
-        "qwen-plus", model_provider="openai",
-        api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+        "qwen-plus",
+        model_provider="openai",
+        api_key=DASHSCOPE_API_KEY,
+        base_url=DASHSCOPE_BASE_URL,
     )
 
     inputs = ["什么是人工智能", "什么是深度学习", "什么是机器学习"]

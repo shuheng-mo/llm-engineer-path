@@ -2,6 +2,7 @@
 
 对应课程章节：四 / 第四章 4.5
 """
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 

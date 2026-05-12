@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 3.1 JSON Schema
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -9,7 +10,9 @@ from langchain_openai import ChatOpenAI
 
 load_dotenv()
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
-DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+DASHSCOPE_BASE_URL = (
+    os.getenv("DASHSCOPE_BASE_URL") or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+)
 
 json_schema = {
     "title": "Sentiment",
@@ -22,11 +25,14 @@ json_schema = {
             "description": "情感倾向，只能取值：positive/negative/neutral",
         },
         "confidence": {
-            "type": "number", "minimum": 0, "maximum": 1,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
             "description": "置信度，0到1之间的浮点数",
         },
         "keywords": {
-            "type": "array", "items": {"type": "string"},
+            "type": "array",
+            "items": {"type": "string"},
             "description": "关键情感词，数组元素为字符串",
         },
     },
@@ -35,7 +41,8 @@ json_schema = {
 
 model = ChatOpenAI(
     model="qwen-plus",
-    api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+    api_key=DASHSCOPE_API_KEY,
+    base_url=DASHSCOPE_BASE_URL,
     temperature=0,
 )
 

@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 6.2
 """
+
 import asyncio
 import os
 from datetime import datetime
@@ -72,13 +73,15 @@ language_prompt = ChatPromptTemplate.from_template(
 language_chain = (lambda x: {"text": x["text"]}) | language_prompt | model | JsonOutputParser()
 
 
-parallel_analysis = RunnableParallel({
-    "summary": summary_chain,
-    "keywords": keywords_chain,
-    "sentiment": sentiment_chain,
-    "language": language_chain,
-    "metadata": RunnablePassthrough(),
-})
+parallel_analysis = RunnableParallel(
+    {
+        "summary": summary_chain,
+        "keywords": keywords_chain,
+        "sentiment": sentiment_chain,
+        "language": language_chain,
+        "metadata": RunnablePassthrough(),
+    }
+)
 
 
 def format_report(analysis_results: dict) -> dict:
@@ -100,9 +103,7 @@ def format_report(analysis_results: dict) -> dict:
 
 
 text_analysis_pipeline = (
-    RunnableLambda(preprocess_text)
-    | parallel_analysis
-    | RunnableLambda(format_report)
+    RunnableLambda(preprocess_text) | parallel_analysis | RunnableLambda(format_report)
 ).with_config(run_name="TextAnalysisPipeline")
 
 
@@ -127,11 +128,15 @@ async def main():
             print("分析报告")
             print("=" * 60)
             report = result["report"]
-            print(f"\n📊 文本信息: 原始 {report['text_info']['original_length']} / 清理后 {report['text_info']['cleaned_length']}")
+            print(
+                f"\n📊 文本信息: 原始 {report['text_info']['original_length']} / 清理后 {report['text_info']['cleaned_length']}"
+            )
             print(f"\n📝 摘要: {report['analysis']['summary']}")
             print(f"\n🏷️ 关键词: {', '.join(report['analysis']['keywords'])}")
             sentiment = report["analysis"]["sentiment"]
-            print(f"\n😊 情感分析: {sentiment['sentiment']} ({sentiment['confidence']}) - {sentiment['reason']}")
+            print(
+                f"\n😊 情感分析: {sentiment['sentiment']} ({sentiment['confidence']}) - {sentiment['reason']}"
+            )
             lang = report["analysis"]["language"]
             print(f"\n🌍 语言: {lang['language']} ({lang['code']}) - {lang['confidence']}")
 

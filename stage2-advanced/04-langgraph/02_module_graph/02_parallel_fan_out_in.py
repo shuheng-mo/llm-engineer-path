@@ -2,6 +2,7 @@
 
 对应课程章节：模块二 / 4.1
 """
+
 import os
 from operator import add
 from typing import Annotated, TypedDict
@@ -60,8 +61,8 @@ builder.add_node("search_kb", search_kb)
 builder.add_node("search_db", search_db)
 builder.add_node("aggregate", aggregate)
 
-builder.add_conditional_edges(START, fan_out)   # 扇出
-builder.add_edge("search_web", "aggregate")     # 扇入
+builder.add_conditional_edges(START, fan_out)  # 扇出
+builder.add_edge("search_web", "aggregate")  # 扇入
 builder.add_edge("search_kb", "aggregate")
 builder.add_edge("search_db", "aggregate")
 builder.add_edge("aggregate", END)

@@ -42,7 +42,7 @@ ITINERARY_PLANNER_PROMPT = """你是行程规划专家。
 STEP_CONFIG = {
     "preference_collector": {
         "prompt": PREFERENCE_COLLECTOR_PROMPT,
-        "tools": [record_preferences],                         # noqa: F821
+        "tools": [record_preferences],  # noqa: F821
         "requires": [],
     },
     "destination_recommender": {

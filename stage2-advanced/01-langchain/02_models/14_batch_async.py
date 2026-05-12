@@ -2,6 +2,7 @@
 
 对应课程章节：第三章 / 5.3
 """
+
 import asyncio
 import os
 
@@ -16,8 +17,10 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL")
 
 async def batch_process():
     model = init_chat_model(
-        "qwen-max", model_provider="openai",
-        api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+        "qwen-max",
+        model_provider="openai",
+        api_key=DASHSCOPE_API_KEY,
+        base_url=DASHSCOPE_BASE_URL,
         temperature=0.7,
     )
 

@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 2.3.2
 """
+
 from typing_extensions import NotRequired
 
 from langchain.agents import AgentState, create_agent
@@ -15,8 +16,8 @@ class CustomState(AgentState):
 
 # 方式 1：通过 state_schema
 agent = create_agent(
-    model=model,                    # noqa: F821
-    tools=tools,                    # noqa: F821
+    model=model,  # noqa: F821
+    tools=tools,  # noqa: F821
     state_schema=CustomState,
 )
 
@@ -31,7 +32,7 @@ class CustomMiddleware(AgentMiddleware):
 
 
 agent = create_agent(
-    model=model,                    # noqa: F821
-    tools=tools,                    # noqa: F821
+    model=model,  # noqa: F821
+    tools=tools,  # noqa: F821
     middleware=[CustomMiddleware()],
 )

@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 二 / Step 3
 """
+
 from typing import Annotated
 
 from langchain.tools import InjectedToolCallId, tool
@@ -21,7 +22,7 @@ from langgraph.types import Command
     - 需要商品销售数据分析
 
     输入：自然语言描述的商品管理需求
-    示例："上架一款夏季新款连衣裙，价格299元"""
+    示例："上架一款夏季新款连衣裙，价格299元""",
 )
 def manage_product(
     request: str,
@@ -34,9 +35,11 @@ def manage_product(
     result = product_agent.invoke({"messages": [{"role": "user", "content": request}]})  # noqa: F821
     final_message = result["messages"][-1].content
 
-    return Command(update={
-        "messages": [ToolMessage(content=final_message, tool_call_id=tool_call_id)],
-    })
+    return Command(
+        update={
+            "messages": [ToolMessage(content=final_message, tool_call_id=tool_call_id)],
+        }
+    )
 
 
 @tool(
@@ -48,7 +51,7 @@ def manage_product(
     - 需要发送营销推送
 
     输入：自然语言描述的营销需求
-    示例："创建618大促满减活动"""
+    示例："创建618大促满减活动""",
 )
 def create_campaign(
     request: str,
@@ -58,6 +61,8 @@ def create_campaign(
     result = marketing_agent.invoke({"messages": [{"role": "user", "content": request}]})  # noqa: F821
     final_message = result["messages"][-1].content
 
-    return Command(update={
-        "messages": [ToolMessage(content=final_message, tool_call_id=tool_call_id)],
-    })
+    return Command(
+        update={
+            "messages": [ToolMessage(content=final_message, tool_call_id=tool_call_id)],
+        }
+    )

@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 6.1 Prompt 效果对比
 """
+
 import os
 
 from dotenv import load_dotenv

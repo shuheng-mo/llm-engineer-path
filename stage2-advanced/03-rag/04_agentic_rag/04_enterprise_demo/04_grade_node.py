@@ -2,6 +2,7 @@
 
 对应课程章节：四 / 第四章 4.3
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
@@ -18,10 +19,12 @@ system = """你是一名专业的文档评估员。
 请评估检索到的文档是否与用户的问题相关。
 如果文档包含关键词或语义相关的含义，请评为 'yes'，否则评为 'no'。"""
 
-grade_prompt = ChatPromptTemplate.from_messages([
-    ("system", system),
-    ("human", "检索文档: \n\n {document} \n\n 用户问题: {question}"),
-])
+grade_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system),
+        ("human", "检索文档: \n\n {document} \n\n 用户问题: {question}"),
+    ]
+)
 
 retrieval_grader = grade_prompt | structured_llm_grader
 

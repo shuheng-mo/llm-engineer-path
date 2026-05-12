@@ -2,6 +2,7 @@
 
 对应课程章节：模块二 / 综合实践
 """
+
 import os
 import uuid
 
@@ -112,6 +113,7 @@ def run_interactive():
         except Exception as e:
             print(f"\n❌ 错误: {e}")
             import traceback
+
             traceback.print_exc()
 
 

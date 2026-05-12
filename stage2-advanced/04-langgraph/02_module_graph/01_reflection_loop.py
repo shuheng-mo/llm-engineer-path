@@ -2,6 +2,7 @@
 
 对应课程章节：模块二 / 实践练习：Agent 反思循环
 """
+
 import os
 from typing import Literal, TypedDict
 
@@ -140,8 +141,12 @@ def run_reflection_loop(task: str, max_iterations: int = 3):
 
     graph = build_graph()
     initial_state = {
-        "task": task, "draft": "", "quality_score": 0.0,
-        "reflection": "", "iteration": 0, "max_iterations": max_iterations,
+        "task": task,
+        "draft": "",
+        "quality_score": 0.0,
+        "reflection": "",
+        "iteration": 0,
+        "max_iterations": max_iterations,
     }
     final_state = graph.invoke(initial_state)
 

@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 3.5
 """
+
 import os
 from collections import defaultdict
 from dotenv import load_dotenv
@@ -14,10 +15,14 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 load_dotenv()
 
 documents = [
-    Document(page_content="RecursiveCharacterTextSplitter 是 LangChain 中最常用的文本分割器，它会递归地尝试不同的分隔符来分割文本。"),
+    Document(
+        page_content="RecursiveCharacterTextSplitter 是 LangChain 中最常用的文本分割器，它会递归地尝试不同的分隔符来分割文本。"
+    ),
     Document(page_content="文本分割是 RAG 流程中的关键步骤，好的分割策略可以显著提升检索效果。"),
     Document(page_content="LangChain 提供了多种分割器，包括按字符、按句子、按段落等方式。"),
-    Document(page_content="使用 RecursiveCharacterTextSplitter 时，需要设置 chunk_size 和 chunk_overlap 参数。"),
+    Document(
+        page_content="使用 RecursiveCharacterTextSplitter 时，需要设置 chunk_size 和 chunk_overlap 参数。"
+    ),
     Document(page_content="向量检索通过语义相似度来匹配文档，而 BM25 通过关键词匹配。"),
 ]
 
@@ -46,7 +51,7 @@ def reciprocal_rank_fusion(results_list: list, k: int = 60, top_n: int = 10) -> 
 
     for results in results_list:
         for rank, doc in enumerate(results, start=1):
-            doc_id = doc.page_content[:100]    # 用前 100 字作为去重 key
+            doc_id = doc.page_content[:100]  # 用前 100 字作为去重 key
             rrf_scores[doc_id] += 1 / (k + rank)
             doc_map[doc_id] = doc
 

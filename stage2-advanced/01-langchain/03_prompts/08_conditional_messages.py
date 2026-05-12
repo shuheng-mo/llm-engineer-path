@@ -2,6 +2,7 @@
 
 对应课程章节：第四章 / 2.5
 """
+
 from typing import List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -13,12 +14,14 @@ def create_prompt(include_examples: bool = False, language: str = "中文"):
         ("system", f"你是一位专业的翻译官，请把下面的文本翻译成{language}"),
     ]
     if include_examples:
-        messages.extend([
-            ("human", "Hello World!"),
-            ("ai", "你好，世界！"),
-            ("human", "Good afternoon!"),
-            ("ai", "下午好！"),
-        ])
+        messages.extend(
+            [
+                ("human", "Hello World!"),
+                ("ai", "你好，世界！"),
+                ("human", "Good afternoon!"),
+                ("ai", "下午好！"),
+            ]
+        )
     messages.append(("human", "{text}"))
     return ChatPromptTemplate.from_messages(messages)
 
@@ -58,8 +61,7 @@ class PromptBuilder:
 
 builder = PromptBuilder("你是一位 Python 编程专家。")
 template = (
-    builder
-    .add_example("如何创建列表？", "使用方括号：my_list = [1, 2, 3]")
+    builder.add_example("如何创建列表？", "使用方括号：my_list = [1, 2, 3]")
     .add_example("如何遍历列表？", "使用 for 循环：for item in my_list:")
     .set_context("用户是编程初学者")
     .build()

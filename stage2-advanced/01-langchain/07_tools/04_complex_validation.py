@@ -2,6 +2,7 @@
 
 对应课程章节：第八章 / 2.2.3
 """
+
 from typing import Literal, Optional
 
 from langchain_core.tools import tool

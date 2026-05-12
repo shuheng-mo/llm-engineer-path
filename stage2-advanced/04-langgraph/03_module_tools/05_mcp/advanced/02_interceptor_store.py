@@ -2,12 +2,10 @@
 
 对应课程章节：模块三 / 4.5.1 示例 2
 """
+
 from dataclasses import dataclass
 
-from langchain.agents import create_agent
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.interceptors import MCPToolCallRequest
-from langgraph.store.memory import InMemoryStore
 
 
 @dataclass

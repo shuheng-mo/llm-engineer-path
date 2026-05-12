@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 1.2.3
 """
+
 from langchain.messages import RemoveMessage
 from langchain.tools import ToolRuntime, tool
 from langgraph.graph.message import REMOVE_ALL_MESSAGES

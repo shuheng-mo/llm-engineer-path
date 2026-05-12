@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 三 / Step 5
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -21,14 +22,18 @@ load_dotenv()
 model = ChatTongyi(model="qwen-max", api_key=os.getenv("DASHSCOPE_API_KEY"))
 
 all_tools = [
-    record_preferences, select_destination, generate_itinerary,         # noqa: F821
-    search_flights, search_hotels, search_attractions,                  # noqa: F821
+    record_preferences,
+    select_destination,
+    generate_itinerary,  # noqa: F821
+    search_flights,
+    search_hotels,
+    search_attractions,  # noqa: F821
 ]
 
 travel_agent = create_agent(
     model,
     tools=all_tools,
-    state_schema=TravelPlanningState,                                   # noqa: F821
-    middleware=[apply_step_config],                                     # noqa: F821
+    state_schema=TravelPlanningState,  # noqa: F821
+    middleware=[apply_step_config],  # noqa: F821
     checkpointer=InMemorySaver(),
 )

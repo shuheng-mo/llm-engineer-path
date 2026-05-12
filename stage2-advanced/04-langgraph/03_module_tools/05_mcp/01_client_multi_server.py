@@ -5,6 +5,7 @@
 依赖:
 uv pip install langchain-mcp-adapters
 """
+
 import asyncio
 
 from langchain.agents import create_agent
@@ -15,20 +16,22 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 
 async def main():
-    client = MultiServerMCPClient({
-        "math": {
-            "transport": "stdio",
-            "command": "python",
-            "args": ["./servers/math_server.py"],
-        },
-        "weather": {
-            "transport": "http",
-            "url": "http://localhost:8000/mcp",
-        },
-    })
+    client = MultiServerMCPClient(
+        {
+            "math": {
+                "transport": "stdio",
+                "command": "python",
+                "args": ["./servers/math_server.py"],
+            },
+            "weather": {
+                "transport": "http",
+                "url": "http://localhost:8000/mcp",
+            },
+        }
+    )
 
     tools = await client.get_tools()
-    agent = create_agent(model, tools)            # noqa: F821
+    agent = create_agent(model, tools)  # noqa: F821
 
     result1 = await agent.ainvoke({"messages": [{"role": "user", "content": "计算 3 × 12"}]})
     result2 = await agent.ainvoke({"messages": [{"role": "user", "content": "纽约天气如何？"}]})

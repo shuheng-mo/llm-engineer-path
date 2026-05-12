@@ -2,6 +2,7 @@
 
 对应课程章节：模块四 / 4.2
 """
+
 from langchain_core.messages.utils import count_tokens_approximately, trim_messages
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, MessagesState, StateGraph

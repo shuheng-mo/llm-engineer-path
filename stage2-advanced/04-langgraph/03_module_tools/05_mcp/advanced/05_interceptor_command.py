@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 4.5.1 状态更新与命令
 """
+
 from langchain.messages import ToolMessage
 from langchain_mcp_adapters.interceptors import MCPToolCallRequest
 from langgraph.types import Command

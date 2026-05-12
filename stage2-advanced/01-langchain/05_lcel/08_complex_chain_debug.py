@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 4.6
 """
+
 import asyncio
 import os
 
@@ -22,9 +23,9 @@ parser = StrOutputParser()
 
 
 # 预处理
-preprocess = RunnableLambda(
-    lambda x: {"text": x["text"].strip()}
-).with_config(run_name="Preprocess")
+preprocess = RunnableLambda(lambda x: {"text": x["text"].strip()}).with_config(
+    run_name="Preprocess"
+)
 
 
 # 总结
@@ -40,21 +41,18 @@ translation_chain = (translation_prompt | model | parser).with_config(run_name="
 def combine_result(result: dict) -> str:
     summary = result.get("summary", "")
     translation = result.get("translation", "")
-    return (
-        "=== 总结 ===\n"
-        f"{summary}\n\n"
-        "=== 英文翻译 ===\n"
-        f"{translation}"
-    )
+    return "=== 总结 ===\n" f"{summary}\n\n" "=== 英文翻译 ===\n" f"{translation}"
 
 
 postprocess = RunnableLambda(combine_result).with_config(run_name="Postprocess")
 
 
-parallel_chain = RunnableParallel({
-    "summary": summary_chain,
-    "translation": translation_chain,
-}).with_config(run_name="ParallelProcessor")
+parallel_chain = RunnableParallel(
+    {
+        "summary": summary_chain,
+        "translation": translation_chain,
+    }
+).with_config(run_name="ParallelProcessor")
 
 full_chain = preprocess | parallel_chain | postprocess
 
@@ -62,7 +60,7 @@ full_chain = preprocess | parallel_chain | postprocess
 async def debug_complex_chain():
     test_input = {
         "text": "人工智能（AI）是一门研究如何让机器表现出智能行为的学科，"
-                "包括机器学习、自然语言处理、计算机视觉等多个领域。",
+        "包括机器学习、自然语言处理、计算机视觉等多个领域。",
     }
 
     print("输入文本：", test_input["text"], "\n")

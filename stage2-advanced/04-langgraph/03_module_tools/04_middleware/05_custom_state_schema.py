@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 3.3.7
 """
+
 from typing import Any
 
 from typing_extensions import NotRequired

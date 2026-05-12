@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 五 / Step 5
 """
+
 from langgraph.graph import END, START, StateGraph
 
 # from .01_state import RouterState
@@ -11,12 +12,12 @@ from langgraph.graph import END, START, StateGraph
 # )
 
 workflow = (
-    StateGraph(RouterState)                                         # noqa: F821
-    .add_node("classify", classify_query)                           # noqa: F821
-    .add_node("github", query_github)                               # noqa: F821
-    .add_node("notion", query_notion)                               # noqa: F821
-    .add_node("slack", query_slack)                                 # noqa: F821
-    .add_node("synthesize", synthesize_results)                     # noqa: F821
+    StateGraph(RouterState)  # noqa: F821
+    .add_node("classify", classify_query)  # noqa: F821
+    .add_node("github", query_github)  # noqa: F821
+    .add_node("notion", query_notion)  # noqa: F821
+    .add_node("slack", query_slack)  # noqa: F821
+    .add_node("synthesize", synthesize_results)  # noqa: F821
     .add_edge(START, "classify")
     .add_conditional_edges("classify", route_to_agents, ["github", "notion", "slack"])  # noqa: F821
     .add_edge("github", "synthesize")

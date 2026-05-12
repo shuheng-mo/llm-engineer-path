@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 3.3 Postgres 存储
 """
+
 import os
 
 from langchain_community.chat_message_histories import PostgresChatMessageHistory

@@ -2,6 +2,7 @@
 
 对应课程章节：模块二 / 4.3
 """
+
 import os
 from typing import TypedDict
 
@@ -44,8 +45,8 @@ research_subgraph = research_builder.compile()
 
 # ============ 主图 ============
 class MainState(TypedDict):
-    topic: str           # 与子图同名，自动传递
-    summary: str         # 与子图同名，自动回传
+    topic: str  # 与子图同名，自动传递
+    summary: str  # 与子图同名，自动回传
     final_report: str
 
 
@@ -55,7 +56,7 @@ def generate_report(state: MainState) -> dict:
 
 
 main_builder = StateGraph(MainState)
-main_builder.add_node("research", research_subgraph)   # 子图直接当节点
+main_builder.add_node("research", research_subgraph)  # 子图直接当节点
 main_builder.add_node("report", generate_report)
 main_builder.add_edge(START, "research")
 main_builder.add_edge("research", "report")

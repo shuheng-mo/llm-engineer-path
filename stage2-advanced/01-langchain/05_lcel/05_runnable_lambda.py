@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 3.6
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 
@@ -17,7 +18,7 @@ def format_output(response) -> str:
 chain = (
     RunnableLambda(format_input)
     | ChatPromptTemplate.from_template("请简要介绍：{topic}")
-    | model                                               # noqa: F821
+    | model  # noqa: F821
     | RunnableLambda(format_output)
 )
 

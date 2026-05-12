@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 4.4.3
 """
+
 from fastmcp import FastMCP
 
 mcp = FastMCP("Prompts")

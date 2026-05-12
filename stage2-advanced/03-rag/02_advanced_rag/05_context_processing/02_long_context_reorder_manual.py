@@ -2,6 +2,8 @@
 
 对应课程章节：二 / 5.2 方式二
 """
+
+
 def long_context_reorder(documents: list) -> list:
     """Long Context Reorder 手动实现。
 

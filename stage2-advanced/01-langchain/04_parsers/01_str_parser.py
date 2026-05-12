@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 2.1
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -15,8 +16,10 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL")
 
 parser = StrOutputParser()
 model = init_chat_model(
-    model="qwen-max", model_provider="openai",
-    api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+    model="qwen-max",
+    model_provider="openai",
+    api_key=DASHSCOPE_API_KEY,
+    base_url=DASHSCOPE_BASE_URL,
     temperature=0.7,
 )
 

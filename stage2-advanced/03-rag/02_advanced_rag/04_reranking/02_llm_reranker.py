@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 4.4
 """
+
 import os
 from typing import List
 
@@ -23,19 +24,21 @@ class LLMReranker:
             temperature=0,
         )
 
-        self.score_prompt = ChatPromptTemplate.from_messages([
-            (
-                "system",
-                """评估文档与查询的相关性，给出 0-10 的分数。
+        self.score_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """评估文档与查询的相关性，给出 0-10 的分数。
 只输出一个数字，不要有任何其他内容。
 
 评分标准：
 - 0-3：不相关
 - 4-6：部分相关
 - 7-10：高度相关""",
-            ),
-            ("human", "查询：{query}\n\n文档：{document}\n\n相关性分数："),
-        ])
+                ),
+                ("human", "查询：{query}\n\n文档：{document}\n\n相关性分数："),
+            ]
+        )
 
     def _score_document(self, query: str, document: str) -> float:
         response = (self.score_prompt | self.llm).invoke({"query": query, "document": document})

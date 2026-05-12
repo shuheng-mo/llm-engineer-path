@@ -5,6 +5,7 @@
 依赖:
 uv pip install psycopg2-binary
 """
+
 """
 Memory 综合实战：具备短期 + 长期记忆的聊天机器人
 - 短期记忆：Redis（对话历史）
@@ -114,9 +115,11 @@ class PostgresUserProfileStore:
 
     def save(self, profile: UserProfile) -> None:
         with self.SessionLocal() as session:
-            db_profile = session.query(UserProfileDB).filter(
-                UserProfileDB.user_id == profile.user_id
-            ).first()
+            db_profile = (
+                session.query(UserProfileDB)
+                .filter(UserProfileDB.user_id == profile.user_id)
+                .first()
+            )
             if db_profile:
                 db_profile.name = profile.name
                 db_profile.occupation = profile.occupation
@@ -137,9 +140,9 @@ class PostgresUserProfileStore:
 
     def load(self, user_id: str) -> Optional[UserProfile]:
         with self.SessionLocal() as session:
-            db_profile = session.query(UserProfileDB).filter(
-                UserProfileDB.user_id == user_id
-            ).first()
+            db_profile = (
+                session.query(UserProfileDB).filter(UserProfileDB.user_id == user_id).first()
+            )
             if db_profile is None:
                 return None
             return UserProfile(
@@ -177,17 +180,22 @@ class RedisSessionManager:
 # === 6. 信息抽取 ===
 class InfoExtractor:
     def __init__(self, llm):
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """从用户消息中提取以下信息（仅提取明确提到的，不要推测）：
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """从用户消息中提取以下信息（仅提取明确提到的，不要推测）：
 - name: 用户名字
 - occupation: 职业
 - skills: 技能列表
 - project: 当前项目
 - has_new_info: 是否包含新信息（如果消息中有任何上述信息则为 true）
 
-输出 JSON 格式，未提到的字段为 null 或空列表。"""),
-            ("human", "{message}"),
-        ])
+输出 JSON 格式，未提到的字段为 null 或空列表。""",
+                ),
+                ("human", "{message}"),
+            ]
+        )
         self.chain = self.prompt | llm | JsonOutputParser()
 
     def extract(self, message: str) -> ExtractedInfo:
@@ -205,8 +213,11 @@ class MemoryBot:
         self.session_manager = RedisSessionManager(ttl=session_ttl)
         self.extractor = InfoExtractor(extract_llm)
 
-        self.chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", """你是一个智能助手，具备记忆能力。
+        self.chat_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """你是一个智能助手，具备记忆能力。
 
 ## 用户画像（长期记忆）
 {user_profile}
@@ -215,10 +226,12 @@ class MemoryBot:
 - 根据用户背景调整回复风格
 - 使用用户熟悉的技术举例
 - 保持自然的对话风格
-- 记住当前对话的上下文"""),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{input}"),
-        ])
+- 记住当前对话的上下文""",
+                ),
+                MessagesPlaceholder(variable_name="history"),
+                ("human", "{input}"),
+            ]
+        )
         self.chat_chain = self.chat_prompt | llm | StrOutputParser()
 
     def _format_profile(self, profile: UserProfile) -> str:

@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 4.2
 """
+
 import re
 from typing import List
 
@@ -30,6 +31,7 @@ class MultiSectionParser:
                 continue
             try:
                 import json
+
                 data = json.loads(part)
                 sections.append(Section(**data))
             except Exception:

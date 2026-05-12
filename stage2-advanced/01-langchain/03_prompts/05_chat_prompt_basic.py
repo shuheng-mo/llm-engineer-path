@@ -2,6 +2,7 @@
 
 对应课程章节：第四章 / 2.2
 """
+
 from langchain_core.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
@@ -9,10 +10,12 @@ from langchain_core.prompts import (
 )
 
 # === 方式 1：从消息列表创建 ===
-template = ChatPromptTemplate.from_messages([
-    ("system", "你是一位专业的{role}，请用{language}回答问题。"),
-    ("human", "{question}"),
-])
+template = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是一位专业的{role}，请用{language}回答问题。"),
+        ("human", "{question}"),
+    ]
+)
 
 messages = template.format_messages(
     role="技术顾问",
@@ -24,9 +27,7 @@ for msg in messages:
 
 
 # === 方式 2：使用 Message 类 ===
-system_template = SystemMessagePromptTemplate.from_template(
-    "你是一位专业的{role}，名字叫{name}"
-)
+system_template = SystemMessagePromptTemplate.from_template("你是一位专业的{role}，名字叫{name}")
 human_template = HumanMessagePromptTemplate.from_template("{user_input}")
 
 template = ChatPromptTemplate.from_messages([system_template, human_template])

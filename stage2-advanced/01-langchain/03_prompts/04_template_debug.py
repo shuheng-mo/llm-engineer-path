@@ -2,6 +2,7 @@
 
 对应课程章节：第四章 / 1.5
 """
+
 from langchain_core.prompts import PromptTemplate
 
 template = PromptTemplate.from_template("Hello, {name}! Welcome to {place}.")

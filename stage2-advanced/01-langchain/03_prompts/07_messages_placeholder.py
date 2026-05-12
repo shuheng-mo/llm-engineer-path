@@ -2,15 +2,18 @@
 
 对应课程章节：第四章 / 2.4
 """
+
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 # === 必填的历史消息 ===
-template = ChatPromptTemplate.from_messages([
-    ("system", "你是一个专业的技术顾问"),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{user_input}"),
-])
+template = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是一个专业的技术顾问"),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{user_input}"),
+    ]
+)
 
 history = [
     HumanMessage(content="你好"),
@@ -26,11 +29,13 @@ for message in messages:
 
 
 # === 可选的历史消息（optional=True） ===
-template = ChatPromptTemplate.from_messages([
-    ("system", "你是 AI 助手。"),
-    MessagesPlaceholder(variable_name="history", optional=True),
-    ("human", "{input}"),
-])
+template = ChatPromptTemplate.from_messages(
+    [
+        ("system", "你是 AI 助手。"),
+        MessagesPlaceholder(variable_name="history", optional=True),
+        ("human", "{input}"),
+    ]
+)
 
 # 不传 history 也行
 messages1 = template.format_messages(input="你好")

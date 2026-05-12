@@ -2,10 +2,14 @@
 
 对应课程章节：第四章 / 4.4
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 
-agent_template = ChatPromptTemplate.from_messages([
-    ("system", """你是一个智能助手，可以使用以下工具来帮助用户：
+agent_template = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个智能助手，可以使用以下工具来帮助用户：
 
 ## 可用工具
 
@@ -31,6 +35,8 @@ agent_template = ChatPromptTemplate.from_messages([
 1. 根据用户需求选择合适的工具
 2. 可以组合使用多个工具
 3. 如果不需要工具，直接回答即可
-4. 工具调用前先说明你的计划"""),
-    ("human", "{user_request}"),
-])
+4. 工具调用前先说明你的计划""",
+        ),
+        ("human", "{user_request}"),
+    ]
+)

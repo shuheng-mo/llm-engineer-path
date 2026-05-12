@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 四 / Step 4
 """
+
 from typing import Callable
 
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
@@ -14,11 +15,11 @@ from langchain.messages import SystemMessage
 class SkillMiddleware(AgentMiddleware):
     """将技能描述注入系统提示词的中间件"""
 
-    tools = [load_skill]                                          # noqa: F821
+    tools = [load_skill]  # noqa: F821
 
     def __init__(self):
         skills_list = []
-        for skill in SKILLS:                                       # noqa: F821
+        for skill in SKILLS:  # noqa: F821
             skills_list.append(f"- **{skill['name']}**: {skill['description']}")
         self.skills_prompt = "\n".join(skills_list)
 

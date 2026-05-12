@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 5.2
 """
+
 import json
 import os
 from datetime import datetime
@@ -10,9 +11,11 @@ from typing import Optional
 import redis
 from dotenv import load_dotenv
 
+
 # from .09_user_profile_pydantic import UserProfile
-class UserProfile:                       # placeholder
+class UserProfile:  # placeholder
     pass
+
 
 load_dotenv()
 

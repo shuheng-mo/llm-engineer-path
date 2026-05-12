@@ -5,6 +5,7 @@
 依赖:
 uv pip install ddgs
 """
+
 import operator
 import os
 import time
@@ -88,7 +89,20 @@ def executor_node(state: AgentState):
     current_step = plan[0]
     print(f"\n--- [2] Executor: 执行步骤 '{current_step}' ---")
 
-    web_keywords = ["网页", "web", "最新", "新闻", "对比", "销量", "财报", "来源", "链接", "引用", "证据", "谁更强"]
+    web_keywords = [
+        "网页",
+        "web",
+        "最新",
+        "新闻",
+        "对比",
+        "销量",
+        "财报",
+        "来源",
+        "链接",
+        "引用",
+        "证据",
+        "谁更强",
+    ]
     use_web = any(k in current_step.lower() for k in [kw.lower() for kw in web_keywords])
 
     if use_web:

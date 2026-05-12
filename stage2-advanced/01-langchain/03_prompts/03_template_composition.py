@@ -2,6 +2,7 @@
 
 对应课程章节：第四章 / 1.4
 """
+
 from langchain_core.prompts import PromptTemplate
 
 # === 模板继承与扩展 ===

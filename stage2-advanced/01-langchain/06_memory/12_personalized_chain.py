@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 5.4
 """
+
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
@@ -29,8 +30,11 @@ def format_profile_for_prompt(profile) -> str:
     return "\n".join(parts) if parts else "暂无用户信息"
 
 
-prompt_with_profile = ChatPromptTemplate.from_messages([
-    ("system", """你是一个智能助手。请根据以下用户信息提供个性化帮助：
+prompt_with_profile = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个智能助手。请根据以下用户信息提供个性化帮助：
 
 ## 用户画像
 {user_profile}
@@ -38,10 +42,12 @@ prompt_with_profile = ChatPromptTemplate.from_messages([
 ## 注意事项
 - 使用用户熟悉的技术栈举例
 - 根据用户的专业水平调整解释详细程度
-- 考虑用户当前项目的上下文"""),
-    MessagesPlaceholder(variable_name="history"),
-    ("human", "{input}"),
-])
+- 考虑用户当前项目的上下文""",
+        ),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}"),
+    ]
+)
 
 
 def create_personalized_chain(user_id: str, store, llm, get_session_history):

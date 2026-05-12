@@ -29,6 +29,7 @@ MMR (Maximal Marginal Relevance) 的核心思想：
 
 依赖：rag group 已经装了 langchain-chroma + dashscope embeddings。
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -51,10 +52,10 @@ documents = [
     Document(page_content="LangChain 是开源的 LLM 应用开发框架。"),
     Document(page_content="LangChain 是一个开源框架，用于构建基于 LLM 的应用。"),
     Document(page_content="LangChain 提供了一套工具和抽象，帮助开发者基于大语言模型快速构建应用。"),
-
     Document(page_content="RAG 通过先检索相关文档再让 LLM 生成答案，缓解了模型的幻觉问题。"),
-    Document(page_content="检索增强生成（RAG）的工作流程是：先从知识库检索相关内容，再交给模型生成回答。"),
-
+    Document(
+        page_content="检索增强生成（RAG）的工作流程是：先从知识库检索相关内容，再交给模型生成回答。"
+    ),
     Document(page_content="向量数据库存储文档的 embedding，支持基于相似度的快速近邻检索。"),
     Document(page_content="Agent 是被赋予工具调用能力的 LLM，可以自主决策调用哪个工具来完成任务。"),
 ]
@@ -91,7 +92,7 @@ mmr_retriever = vectorstore.as_retriever(
     search_type="mmr",
     search_kwargs={
         "k": 3,
-        "fetch_k": 8,        # 先从向量库取 8 个候选，再 MMR 挑 3 个
+        "fetch_k": 8,  # 先从向量库取 8 个候选，再 MMR 挑 3 个
         "lambda_mult": 0.5,  # 一半相关性、一半多样性
     },
 )

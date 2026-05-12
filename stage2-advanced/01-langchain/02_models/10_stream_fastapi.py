@@ -5,6 +5,7 @@
 依赖:
 uv pip install fastapi 'uvicorn[standard]'
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -19,8 +20,10 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL")
 app = FastAPI()
 
 model = init_chat_model(
-    "qwen-max", model_provider="openai",
-    api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+    "qwen-max",
+    model_provider="openai",
+    api_key=DASHSCOPE_API_KEY,
+    base_url=DASHSCOPE_BASE_URL,
     temperature=0.7,
 )
 
@@ -36,4 +39,5 @@ async def stream_chat(question: str = "请介绍一下什么是深度学习"):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8000)

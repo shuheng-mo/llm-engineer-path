@@ -15,6 +15,7 @@
     - evaluate_single_sample / evaluate_batch_samples 两套并存（批量用 asyncio.gather）
     - format_result 出一个适合打印的字符串
 """
+
 import asyncio
 import os
 
@@ -108,9 +109,7 @@ class RAGEvaluator:
 
     async def evaluate_batch_samples(self, samples: list[SingleTurnSample]) -> list[dict]:
         """批量评估，asyncio.gather 并发。"""
-        return await asyncio.gather(
-            *[self.evaluate_single_sample(s) for s in samples]
-        )
+        return await asyncio.gather(*[self.evaluate_single_sample(s) for s in samples])
 
     @staticmethod
     def format_result(sample: SingleTurnSample, result: dict) -> str:

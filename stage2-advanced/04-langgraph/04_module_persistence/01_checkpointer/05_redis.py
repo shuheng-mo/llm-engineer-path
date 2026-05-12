@@ -5,6 +5,7 @@
 依赖:
 uv pip install langgraph-checkpoint-redis redis
 """
+
 import os
 from typing import Annotated
 

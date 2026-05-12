@@ -2,6 +2,7 @@
 
 对应课程章节：第六章 / 3.4
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableBranch
 
@@ -15,14 +16,14 @@ def classify_question(input_dict):
     return "general"
 
 
-code_chain = ChatPromptTemplate.from_template("你是编程专家。请回答：{question}") | model        # noqa: F821
-math_chain = ChatPromptTemplate.from_template("你是数学家。请回答：{question}") | model         # noqa: F821
-general_chain = ChatPromptTemplate.from_template("请回答：{question}") | model                 # noqa: F821
+code_chain = ChatPromptTemplate.from_template("你是编程专家。请回答：{question}") | model  # noqa: F821
+math_chain = ChatPromptTemplate.from_template("你是数学家。请回答：{question}") | model  # noqa: F821
+general_chain = ChatPromptTemplate.from_template("请回答：{question}") | model  # noqa: F821
 
 branch = RunnableBranch(
     (lambda x: classify_question(x) == "code", code_chain),
     (lambda x: classify_question(x) == "math", math_chain),
-    general_chain,                       # 默认分支
+    general_chain,  # 默认分支
 )
 
 

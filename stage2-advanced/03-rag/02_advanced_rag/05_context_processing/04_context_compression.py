@@ -2,13 +2,15 @@
 
 对应课程章节：二 / 5.3 方式二
 """
+
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 
-compress_prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """从给定文档中提取与问题相关的内容。
+compress_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """从给定文档中提取与问题相关的内容。
 
 要求：
 1. 只保留与问题直接相关的句子
@@ -18,9 +20,10 @@ compress_prompt = ChatPromptTemplate.from_messages([
 
 文档内容：
 {document}""",
-    ),
-    ("human", "问题：{question}\n\n相关内容："),
-])
+        ),
+        ("human", "问题：{question}\n\n相关内容："),
+    ]
+)
 
 
 def compress_document(doc_content: str, question: str, llm) -> str:

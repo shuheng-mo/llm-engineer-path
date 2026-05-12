@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 1.2.2
 """
+
 from langchain.tools import ToolRuntime, tool
 
 

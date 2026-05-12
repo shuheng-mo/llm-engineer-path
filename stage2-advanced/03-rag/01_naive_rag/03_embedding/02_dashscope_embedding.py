@@ -2,6 +2,7 @@
 
 对应课程章节：一 / 4.3.2
 """
+
 import os
 from dotenv import load_dotenv
 from langchain_community.embeddings import DashScopeEmbeddings

@@ -2,6 +2,7 @@
 
 对应课程章节：第四章 / 3.3
 """
+
 from langchain_community.vectorstores import Chroma
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
 from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
@@ -20,7 +21,7 @@ example_selector = SemanticSimilarityExampleSelector.from_examples(
     examples,
     OpenAIEmbeddings(),
     Chroma,
-    k=2,                              # 选择最相似的 2 个示例
+    k=2,  # 选择最相似的 2 个示例
 )
 
 example_prompt = ChatPromptTemplate.from_messages([("human", "{input}"), ("ai", "{output}")])
@@ -30,11 +31,13 @@ dynamic_few_shot = FewShotChatMessagePromptTemplate(
     input_variables=["input"],
 )
 
-final_prompt = ChatPromptTemplate.from_messages([
-    ("system", "分析文本情感，输出：正面、负面 或 中性"),
-    dynamic_few_shot,
-    ("human", "{input}"),
-])
+final_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "分析文本情感，输出：正面、负面 或 中性"),
+        dynamic_few_shot,
+        ("human", "{input}"),
+    ]
+)
 
 messages = final_prompt.format_messages(input="这个体验真的太糟糕了")
 for msg in messages:

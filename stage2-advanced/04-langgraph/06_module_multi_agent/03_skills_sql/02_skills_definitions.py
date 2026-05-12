@@ -4,7 +4,7 @@
 """
 # from .01_skill_struct import Skill
 
-SKILLS: list["Skill"] = [        # noqa: F821
+SKILLS: list["Skill"] = [  # noqa: F821
     {
         "name": "sales_analytics",
         "description": "销售数据分析的数据库schema和业务逻辑，包括客户、订单和收入。",

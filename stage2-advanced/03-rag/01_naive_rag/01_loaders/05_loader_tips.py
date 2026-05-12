@@ -6,10 +6,10 @@
 from langchain_community.document_loaders import TextLoader
 
 
-
 from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+
 
 def process_document(doc):
     print(doc.page_content)

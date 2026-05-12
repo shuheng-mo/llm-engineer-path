@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 三 / Step 4
 """
+
 from typing import Callable
 
 from langchain.agents.middleware import ModelRequest, ModelResponse, wrap_model_call
@@ -16,7 +17,7 @@ def apply_step_config(
 ) -> ModelResponse:
     """根据 state.current_step 动态注入 prompt + 切换可用工具集。"""
     current_step = request.state.get("current_step", "preference_collector")
-    step_config = STEP_CONFIG[current_step]                # noqa: F821
+    step_config = STEP_CONFIG[current_step]  # noqa: F821
 
     # 校验前置依赖
     for key in step_config["requires"]:

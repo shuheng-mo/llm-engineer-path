@@ -14,6 +14,7 @@
     cd stage2-advanced/03-rag/01_naive_rag/07_pdf_assistant/ragas
     uv run python run_evaluation.py
 """
+
 import asyncio
 import importlib.util
 import json
@@ -27,7 +28,7 @@ from ragas import SingleTurnSample
 # 当前文件所在目录
 HERE = Path(__file__).resolve().parent
 PARENT = HERE.parent
-ENV_FILE = PARENT.parent.parent / ".env"   # stage2-advanced/03-rag/.env
+ENV_FILE = PARENT.parent.parent / ".env"  # stage2-advanced/03-rag/.env
 load_dotenv(ENV_FILE, override=False)
 
 # 动态加载 PDFReadingAssistant（因父目录路径 "07_pdf_assistant" 以数字开头无法用 import）
@@ -40,7 +41,7 @@ PDFReadingAssistant = _mod.PDFReadingAssistant
 DATA_DIR = _mod.DATA_DIR
 
 # 当前包的 rag_evaluator（同目录普通 import 即可）
-from rag_evaluator import RAGEvaluator   # noqa: E402
+from rag_evaluator import RAGEvaluator  # noqa: E402
 
 
 def _classify(score: float) -> str:
@@ -87,12 +88,14 @@ async def run_full_evaluation():
         print(f"  [{i}/{len(test_data)}] {question[:40]}...")
         answer, contexts = assistant.ask_with_contexts(question)
         print(f"     → 检索到 {len(contexts)} 个片段")
-        samples.append(SingleTurnSample(
-            user_input=question,
-            response=answer,
-            reference=reference,
-            retrieved_contexts=contexts,
-        ))
+        samples.append(
+            SingleTurnSample(
+                user_input=question,
+                response=answer,
+                reference=reference,
+                retrieved_contexts=contexts,
+            )
+        )
 
     # 评估时每个问题应当独立，清掉对话历史
     assistant.clear_history()

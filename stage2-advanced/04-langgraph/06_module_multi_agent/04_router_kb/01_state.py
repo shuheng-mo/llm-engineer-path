@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 五 / Step 1
 """
+
 import operator
 from typing import Annotated, Literal, TypedDict
 

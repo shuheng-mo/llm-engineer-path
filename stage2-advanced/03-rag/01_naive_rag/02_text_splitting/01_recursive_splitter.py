@@ -4,7 +4,6 @@
 """
 
 from langchain_community.document_loaders import (
-    PyPDFLoader,
     PyMuPDFLoader,
 )
 from langchain_text_splitters import RecursiveCharacterTextSplitter

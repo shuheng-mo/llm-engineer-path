@@ -2,6 +2,7 @@
 
 对应课程章节：第四章 / 1.3
 """
+
 import datetime
 import time
 
@@ -21,7 +22,7 @@ partial_template = template.partial(time=datetime.datetime.now().strftime("%Y-%m
 print(partial_template.format(question="现在是几点了？"))
 
 time.sleep(3)
-print(partial_template.format(question="再问一次 现在是几点了？"))   # time 不会变
+print(partial_template.format(question="再问一次 现在是几点了？"))  # time 不会变
 
 
 # === 用函数动态生成变量值 ===
@@ -36,4 +37,4 @@ template = PromptTemplate(
 )
 print(template.format(question="现在是几点了？"))
 time.sleep(3)
-print(template.format(question="再问一次 现在是几点了？"))           # time 会变
+print(template.format(question="再问一次 现在是几点了？"))  # time 会变

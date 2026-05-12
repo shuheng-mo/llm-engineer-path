@@ -5,6 +5,7 @@
 依赖:
 uv pip install -U sentence-transformers
 """
+
 from typing import List
 
 from langchain_core.documents import Document

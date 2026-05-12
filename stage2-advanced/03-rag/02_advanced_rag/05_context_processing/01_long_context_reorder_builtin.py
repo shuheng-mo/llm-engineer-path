@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 5.2 方式一
 """
+
 from langchain_community.document_transformers import LongContextReorder
 from langchain_core.documents import Document
 

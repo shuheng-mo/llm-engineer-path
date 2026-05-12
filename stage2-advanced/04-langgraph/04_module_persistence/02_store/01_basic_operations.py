@@ -2,6 +2,7 @@
 
 对应课程章节：模块四 / 3.2.1
 """
+
 from langgraph.store.memory import InMemoryStore
 
 store = InMemoryStore()

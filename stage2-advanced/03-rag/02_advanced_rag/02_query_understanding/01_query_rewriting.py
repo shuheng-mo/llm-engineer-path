@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 2.3
 """
+
 import os
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
@@ -16,10 +17,11 @@ llm = ChatOpenAI(
     temperature=0,
 )
 
-rewrite_prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """你是搜索查询优化专家。将用户的口语化问题改写为适合知识库检索的查询。
+rewrite_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是搜索查询优化专家。将用户的口语化问题改写为适合知识库检索的查询。
 
 【改写规则】
 1. 去除口语词（啥、咋、啊、呢）
@@ -32,9 +34,10 @@ rewrite_prompt = ChatPromptTemplate.from_messages([
 输出：Python JSON 解析 读取 写入 方法
 
 只输出改写后的查询，无需解释。""",
-    ),
-    ("human", "{question}"),
-])
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 rewrite_chain = rewrite_prompt | llm
 

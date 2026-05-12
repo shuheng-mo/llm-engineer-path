@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 4.5.1 示例 3
 """
+
 from langchain.messages import ToolMessage
 from langchain_mcp_adapters.interceptors import MCPToolCallRequest
 

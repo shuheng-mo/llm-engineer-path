@@ -2,11 +2,14 @@
 
 对应课程章节：第四章 / 4.1
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 
-template = ChatPromptTemplate.from_messages([
-    ("system",
-     """
+template = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 # Instruction（指令）
 你是一位专业的技术文档撰写专家。
 
@@ -19,6 +22,8 @@ template = ChatPromptTemplate.from_messages([
 2. 核心功能（3-5个要点）
 3. 使用示例
 4. 注意事项
-    """),
-    ("human", "请为以下产品撰写文档：{product_description}"),
-])
+    """,
+        ),
+        ("human", "请为以下产品撰写文档：{product_description}"),
+    ]
+)

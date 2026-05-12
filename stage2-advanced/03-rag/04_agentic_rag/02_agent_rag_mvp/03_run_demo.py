@@ -2,6 +2,7 @@
 
 对应课程章节：四 / 第二章 2.5.4
 """
+
 from langchain_core.messages import HumanMessage
 
 # from .02_langgraph_app import app

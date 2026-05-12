@@ -16,6 +16,7 @@
     - dpi=300，每页 ~1-2s（推荐）
     - dpi=400，每页 ~2-4s（小字/表格）
 """
+
 import logging
 from pathlib import Path
 
@@ -30,6 +31,7 @@ logging.getLogger("pypdf").setLevel(logging.ERROR)
 # ============================================================
 # Part 1: 函数式 — 直接对 PDF 文件做 OCR
 # ============================================================
+
 
 def ocr_pdf_to_text(pdf_path: str | Path, dpi: int = 300) -> list[Document]:
     """把扫描型 PDF 转成 Document 列表。
@@ -48,10 +50,12 @@ def ocr_pdf_to_text(pdf_path: str | Path, dpi: int = 300) -> list[Document]:
             result, _ = ocr(img_bytes)
             page_text = "\n".join(line[1] for line in (result or []))
 
-            docs.append(Document(
-                page_content=page_text,
-                metadata={"source": str(pdf_path), "page": i},
-            ))
+            docs.append(
+                Document(
+                    page_content=page_text,
+                    metadata={"source": str(pdf_path), "page": i},
+                )
+            )
             print(f"  页 {i + 1}: 识别 {len(page_text)} 字")
 
     return docs
@@ -60,6 +64,7 @@ def ocr_pdf_to_text(pdf_path: str | Path, dpi: int = 300) -> list[Document]:
 # ============================================================
 # Part 2: 类封装 — 跟其他 LangChain Loader 用法一致
 # ============================================================
+
 
 class OCRPDFLoader(BaseLoader):
     """LangChain 风格的 OCR PDF Loader，用法和 PyPDFLoader 一致。

@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 二 / Step 2
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ model = ChatTongyi(model="qwen-max", api_key=os.getenv("DASHSCOPE_API_KEY"))
 
 product_agent = create_agent(
     model,
-    tools=[create_product, update_inventory, get_product_analytics],   # noqa: F821
+    tools=[create_product, update_inventory, get_product_analytics],  # noqa: F821
     system_prompt="""你是电商商品管理专家。
 
     职责：
@@ -34,7 +35,7 @@ product_agent = create_agent(
 
 marketing_agent = create_agent(
     model,
-    tools=[create_promotion, send_marketing_push],     # noqa: F821
+    tools=[create_promotion, send_marketing_push],  # noqa: F821
     system_prompt="""你是电商营销推广专家。
 
     职责：

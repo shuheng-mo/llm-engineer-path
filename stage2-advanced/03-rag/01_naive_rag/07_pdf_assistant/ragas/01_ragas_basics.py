@@ -10,6 +10,7 @@
 依赖：
     uv pip install ragas openai pandas tabulate
 """
+
 import asyncio
 import os
 
@@ -99,7 +100,7 @@ async def main():
     sample_on_topic = SingleTurnSample(
         user_input="退款政策是什么？",
         response="30 天内可无理由退款，需提供订单号。",
-        retrieved_contexts=[],   # 这个指标只用 user_input 和 response，contexts 不用
+        retrieved_contexts=[],  # 这个指标只用 user_input 和 response，contexts 不用
     )
 
     sample_off_topic = SingleTurnSample(
@@ -119,9 +120,15 @@ async def main():
 
     rel_scorer = AnswerRelevancy(llm=llm, embeddings=embeddings)
 
-    score_on = await rel_scorer.ascore(user_input=sample_on_topic.user_input, response=sample_on_topic.response)
-    score_off = await rel_scorer.ascore(user_input=sample_off_topic.user_input, response=sample_off_topic.response)
-    score_part = await rel_scorer.ascore(user_input=sample_partial.user_input, response=sample_partial.response)
+    score_on = await rel_scorer.ascore(
+        user_input=sample_on_topic.user_input, response=sample_on_topic.response
+    )
+    score_off = await rel_scorer.ascore(
+        user_input=sample_off_topic.user_input, response=sample_off_topic.response
+    )
+    score_part = await rel_scorer.ascore(
+        user_input=sample_partial.user_input, response=sample_partial.response
+    )
 
     print("\n" + "=" * 50)
     print("📊 Answer Relevancy 测试结果")

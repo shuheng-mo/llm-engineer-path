@@ -2,6 +2,7 @@
 
 对应课程章节：第三章 / 4.5
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -14,8 +15,10 @@ DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL")
 
 # 1. 错误处理
 model = init_chat_model(
-    "qwen-plus", model_provider="openai",
-    api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+    "qwen-plus",
+    model_provider="openai",
+    api_key=DASHSCOPE_API_KEY,
+    base_url=DASHSCOPE_BASE_URL,
 )
 
 try:

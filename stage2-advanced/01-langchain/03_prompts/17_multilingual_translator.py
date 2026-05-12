@@ -2,14 +2,19 @@
 
 对应课程章节：第四章 / 5.1
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 
 class MultilingualTranslator:
     SUPPORTED_LANGUAGES = {
-        "zh": "中文", "en": "英文", "ja": "日语",
-        "ko": "韩语", "fr": "法语", "de": "德语",
+        "zh": "中文",
+        "en": "英文",
+        "ja": "日语",
+        "ko": "韩语",
+        "fr": "法语",
+        "de": "德语",
     }
 
     EXAMPLES = {
@@ -78,14 +83,16 @@ if __name__ == "__main__":
 
     result = translator.translate(
         "Artificial intelligence is transforming the world.",
-        source_lang="en", target_lang="zh",
+        source_lang="en",
+        target_lang="zh",
     )
     print(f"翻译结果: {result}")
 
     print("\n流式翻译: ", end="")
     for chunk in translator.translate_stream(
         "机器学习是人工智能的一个重要分支。",
-        source_lang="zh", target_lang="en",
+        source_lang="zh",
+        target_lang="en",
     ):
         print(chunk, end="", flush=True)
     print()

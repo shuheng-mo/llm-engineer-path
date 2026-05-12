@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 2.3
 """
+
 import os
 from typing import List
 
@@ -32,22 +33,31 @@ parser = PydanticOutputParser(pydantic_object=MovieReview)
 print("\n格式指令")
 print(parser.get_format_instructions())
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "你是一个专业的电影评论家，请你根据用户的描述来生成电影评价。\n {format_instructions}"),
-    ("human", "{movie_description}"),
-])
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "你是一个专业的电影评论家，请你根据用户的描述来生成电影评价。\n {format_instructions}",
+        ),
+        ("human", "{movie_description}"),
+    ]
+)
 
 model = init_chat_model(
-    model="qwen-plus", model_provider="openai",
-    api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+    model="qwen-plus",
+    model_provider="openai",
+    api_key=DASHSCOPE_API_KEY,
+    base_url=DASHSCOPE_BASE_URL,
     temperature=0,
 )
 chain = prompt | model | parser
 
-result = chain.invoke({
-    "format_instructions": parser.get_format_instructions(),
-    "movie_description": "我刚看了《盗梦空间》，觉得剧情很烧脑，特效也很震撼，就是有些地方看不太懂。",
-})
+result = chain.invoke(
+    {
+        "format_instructions": parser.get_format_instructions(),
+        "movie_description": "我刚看了《盗梦空间》，觉得剧情很烧脑，特效也很震撼，就是有些地方看不太懂。",
+    }
+)
 
 print("\n下面是结果：")
 print(f"类型： {type(result)}")

@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 5.3
 """
+
 import os
 from typing import Optional
 
@@ -33,8 +34,11 @@ class ExtractedInfo(BaseModel):
     has_new_info: bool = Field(default=False, description="是否包含新信息")
 
 
-extract_prompt = ChatPromptTemplate.from_messages([
-    ("system", """你是一个信息抽取专家。请从用户的对话中提取以下信息：
+extract_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个信息抽取专家。请从用户的对话中提取以下信息：
 - name: 用户的名字
 - occupation: 用户的职业
 - skills: 用户提到的技能列表
@@ -43,9 +47,11 @@ extract_prompt = ChatPromptTemplate.from_messages([
 - has_new_info: 是否从对话中提取到了新信息
 
 请以 JSON 格式输出，没有提到的字段保持为 null 或空。
-只提取明确提到的信息，不要推测。"""),
-    ("human", "用户说: {message}"),
-])
+只提取明确提到的信息，不要推测。""",
+        ),
+        ("human", "用户说: {message}"),
+    ]
+)
 
 parser = JsonOutputParser(pydantic_object=ExtractedInfo)
 extract_chain = extract_prompt | llm | parser

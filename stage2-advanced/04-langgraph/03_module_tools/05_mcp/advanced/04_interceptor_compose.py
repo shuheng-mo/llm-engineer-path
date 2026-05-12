@@ -2,6 +2,8 @@
 
 对应课程章节：模块三 / 4.5.1 拦截器组合
 """
+
+
 async def outer_interceptor(request, handler):
     print("外层: 执行前")
     result = await handler(request)

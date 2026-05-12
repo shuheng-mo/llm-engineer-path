@@ -2,6 +2,7 @@
 
 对应课程章节：第五章 / 4.3
 """
+
 import os
 from enum import Enum
 from typing import List, Optional
@@ -64,8 +65,10 @@ class InformationExtractor:
             raise ValueError("API key or base URL is missing in environment variables.")
 
         self.llm = llm or ChatOpenAI(
-            model="qwen-max", temperature=0,
-            api_key=api_key, base_url=base_url,
+            model="qwen-max",
+            temperature=0,
+            api_key=api_key,
+            base_url=base_url,
         )
         self.structured_model = self.llm.with_structured_output(
             schema=ExtractionResult,
@@ -74,17 +77,22 @@ class InformationExtractor:
         )
 
     def extract(self, text: str) -> ExtractionResult:
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", """你是一个专业的信息抽取系统，请严格按照以下要求输出JSON格式数据：
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """你是一个专业的信息抽取系统，请严格按照以下要求输出JSON格式数据：
 1. JSON字段名必须使用英文；
 2. persons数组元素包含：name、role、description；
 3. events数组元素包含：name、description、participants；
 4. times数组元素包含：original、normalized、is_exact；
 5. locations数组元素包含：name、type、description；
 6. confidence_score取值范围0-1；
-7. 仅输出JSON内容，不要任何额外说明。"""),
-            ("human", "请从以下文本中抽取信息：\n{text}"),
-        ])
+7. 仅输出JSON内容，不要任何额外说明。""",
+                ),
+                ("human", "请从以下文本中抽取信息：\n{text}"),
+            ]
+        )
 
         chain = prompt | self.structured_model
         return chain.invoke({"text": text})

@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 3.3.1
 """
+
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware import after_model, before_model
 from langgraph.runtime import Runtime
@@ -26,7 +27,7 @@ def log_response(state: AgentState, runtime: Runtime) -> dict | None:
 
 
 agent = create_agent(
-    model=model,                # noqa: F821
-    tools=tools,                # noqa: F821
+    model=model,  # noqa: F821
+    tools=tools,  # noqa: F821
     middleware=[safety_check, log_response],
 )

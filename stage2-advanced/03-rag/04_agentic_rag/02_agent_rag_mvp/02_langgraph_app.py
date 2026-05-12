@@ -2,6 +2,7 @@
 
 对应课程章节：四 / 第二章 2.5.3
 """
+
 from typing import Literal
 
 from langchain_community.chat_models import ChatTongyi
@@ -9,7 +10,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
 # from .01_rag_tool import tools   # 实际项目里可以这样 import
-tools = []   # placeholder — 把 01_rag_tool.py 里 tools 复制过来或 import
+tools = []  # placeholder — 把 01_rag_tool.py 里 tools 复制过来或 import
 
 
 # 1. 初始化 Qwen 并 bind 工具

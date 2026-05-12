@@ -13,6 +13,7 @@
     4. metadata filter 语法不同：传 lambda 而不是 {"category": "x"} 形式
     5. similarity_search_with_score 直接返回 L2 距离（越小越相似），可用于阈值过滤
 """
+
 import os
 import shutil
 from pathlib import Path

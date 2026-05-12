@@ -5,6 +5,7 @@
 依赖:
 uv pip install tqdm
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -17,8 +18,10 @@ DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 DASHSCOPE_BASE_URL = os.getenv("DASHSCOPE_BASE_URL")
 
 model = init_chat_model(
-    "qwen-plus", model_provider="openai",
-    api_key=DASHSCOPE_API_KEY, base_url=DASHSCOPE_BASE_URL,
+    "qwen-plus",
+    model_provider="openai",
+    api_key=DASHSCOPE_API_KEY,
+    base_url=DASHSCOPE_BASE_URL,
 )
 
 

@@ -2,6 +2,7 @@
 
 对应课程章节：一 / 5.3.2
 """
+
 import os
 from dotenv import load_dotenv
 from langchain_chroma import Chroma

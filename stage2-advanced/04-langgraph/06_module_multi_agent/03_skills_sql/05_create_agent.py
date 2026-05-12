@@ -2,6 +2,7 @@
 
 对应课程章节：模块六 / 四 / Step 5
 """
+
 import os
 
 from dotenv import load_dotenv
@@ -18,6 +19,6 @@ model = ChatTongyi(model="qwen-max", api_key=os.getenv("DASHSCOPE_API_KEY"))
 agent = create_agent(
     model,
     system_prompt="你是一个SQL查询助手，帮助用户编写业务数据库查询。",
-    middleware=[SkillMiddleware()],                # noqa: F821
+    middleware=[SkillMiddleware()],  # noqa: F821
     checkpointer=InMemorySaver(),
 )

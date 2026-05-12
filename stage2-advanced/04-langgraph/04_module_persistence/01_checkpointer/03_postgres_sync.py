@@ -5,6 +5,7 @@
 依赖:
 uv pip install langgraph-checkpoint-postgres psycopg[binary,pool]
 """
+
 import os
 from typing import Annotated
 

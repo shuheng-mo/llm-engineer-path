@@ -2,6 +2,7 @@
 
 对应课程章节：第七章 / 4.3
 """
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
@@ -9,19 +10,24 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 # from .06_vector_memory_basic import vectorstore, llm
 
 
-retriever = vectorstore.as_retriever(                                # noqa: F821
+retriever = vectorstore.as_retriever(  # noqa: F821
     search_kwargs={"k": 3, "filter": {"user_id": "user_001"}},
 )
 
 
-prompt_with_memory = ChatPromptTemplate.from_messages([
-    ("system", """你是一个智能助手。以下是关于用户的长期记忆：
+prompt_with_memory = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """你是一个智能助手。以下是关于用户的长期记忆：
 {long_term_memory}
 
-请根据这些信息为用户提供个性化的帮助。"""),
-    MessagesPlaceholder(variable_name="history"),
-    ("human", "{input}"),
-])
+请根据这些信息为用户提供个性化的帮助。""",
+        ),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}"),
+    ]
+)
 
 
 def format_memories(docs: list) -> str:
@@ -37,7 +43,7 @@ chain = (
         "input": lambda x: x["input"],
     }
     | prompt_with_memory
-    | llm                                                            # noqa: F821
+    | llm  # noqa: F821
     | StrOutputParser()
 )
 

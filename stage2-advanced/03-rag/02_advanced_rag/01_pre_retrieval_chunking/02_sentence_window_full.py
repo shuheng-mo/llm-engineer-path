@@ -2,6 +2,7 @@
 
 对应课程章节：二 / 1.4 完整封装版本
 """
+
 import os
 import re
 from dotenv import load_dotenv
@@ -48,15 +49,19 @@ class SentenceWindowRetriever:
             idx = doc.metadata["idx"]
             start = max(0, idx - self.window_size)
             end = min(len(self.sentences), idx + self.window_size + 1)
-            windows.append({
-                "matched": self.sentences[idx],
-                "window": "".join(self.sentences[start:end]),
-            })
+            windows.append(
+                {
+                    "matched": self.sentences[idx],
+                    "window": "".join(self.sentences[start:end]),
+                }
+            )
         return windows
 
 
 if __name__ == "__main__":
-    docs = [Document(page_content="LangChain是框架。它很强大。可以做RAG。RAG是检索增强生成。它很有用。")]
+    docs = [
+        Document(page_content="LangChain是框架。它很强大。可以做RAG。RAG是检索增强生成。它很有用。")
+    ]
     retriever = SentenceWindowRetriever(docs, window_size=1)
     for r in retriever.retrieve("什么是RAG？"):
         print(f"匹配: {r['matched']}")

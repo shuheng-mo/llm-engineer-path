@@ -5,6 +5,7 @@
 依赖:
 uv pip install langchain-classic
 """
+
 import os
 from dotenv import load_dotenv
 from langchain_chroma import Chroma

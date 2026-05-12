@@ -2,6 +2,7 @@
 
 对应课程章节：模块三 / 3.3.3
 """
+
 from typing import Callable
 
 from langchain.agents import create_agent
@@ -23,7 +24,7 @@ def retry_model(
 
 
 agent = create_agent(
-    model=model,                # noqa: F821
-    tools=tools,                # noqa: F821
+    model=model,  # noqa: F821
+    tools=tools,  # noqa: F821
     middleware=[retry_model],
 )
