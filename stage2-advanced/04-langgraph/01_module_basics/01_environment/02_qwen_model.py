@@ -11,7 +11,7 @@ from langchain_community.chat_models import ChatTongyi
 load_dotenv()
 
 llm = ChatTongyi(
-    model="qwen-turbo",  # 或 qwen-plus / qwen-max
+    model="qwen-max",  # 或 qwen-plus / qwen-max
     api_key=os.getenv("DASHSCOPE_API_KEY"),
     temperature=0.7,
     top_p=0.9,

@@ -29,7 +29,7 @@ builder.add_node("chat", chat_node)
 builder.add_edge(START, "chat")
 builder.add_edge("chat", END)
 
-graph = builder.compile()
+graph = builder.compile()  # 执行图验证优化并生成可执行的Pregel引擎实例
 
 if __name__ == "__main__":
     result = graph.invoke({"messages": [{"role": "user", "content": "你好，请介绍一下 LangGraph"}]})
