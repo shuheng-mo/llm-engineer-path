@@ -711,10 +711,316 @@ LangGraph(`langchain.agents.middleware`)提供了一些内置的中间件，涵�
 
 常见几种方式：
 
-1. 官方的装饰器
-2. 自定义类
-3. Wrap-style Hook
-4. Agent jumps
-5. 自定义State schema
+1. 官方的装饰器(适用于简单场景)
+2. 自定义类（复杂场景，特别是需要多个hook在一起，需要init配置，需要同步/异步同名hook或者跨项目复用的场景）
+3. Wrap-style Hook（适合重试、缓存和转换，拦截执行并在调用处理程序时控制其行为。）
+4. Agent jumps（提前退出或者跳转的场景）
+5. 自定义State schema（继承重载AgentState，增加多个字段，让多个hook共享）
 
-### MCP协议从
+具体代码参考`stage2-advanced/04-langgraph/03_module_tools/04_middleware`下的代码。
+
+### MCP协议
+
+MCP(Model Context Protocol)协议是一个开放的用于标准化应用向大模型提供工具、上下文和资源的方式。
+核心优势如下：
+
+1. **统一接口**：MCP定义了一套标准接口，应用可以通过这个接口向任何支持MCP的模型提供工具和上下文，无需针对不同模型做适配。本质是把"每个客户端为每个工具单独写适配"的 M×N 集成问题降为 M+N。
+2. **灵活部署**：MCP支持多种部署方式，既可以在本地部署，也可以通过云服务使用，适应不同的应用场景。实际传输层主要是两种：**stdio**（本地子进程，最常见）和 **Streamable HTTP**（远程/网络，已取代旧的 SSE 传输）。
+3. **跨语言生态**：MCP协议设计为语言无关的，支持多种编程语言，方便开发者在不同技术栈中使用。官方 SDK 覆盖 Python / TypeScript / Java / Kotlin / C# / Swift / Rust。
+4. **多服务编排**：应用可以同时挂载多个 MCP Server，把它们暴露的工具/资源/提示聚合起来喂给同一个 Agent。注意"编排"由 Host（宿主应用）完成 —— MCP 协议本身只规定 Client 与 Server 之间的点对点双工通道。
+
+#### 三大原语（Primitives）
+
+MCP 不只是远程 tool calling，还规定了三类暴露给 Host 的能力，触发方分别不同：
+
+| 原语 | 谁触发调用 | 典型用途 |
+|---|---|---|
+| **Tools** | LLM 自主决策调用 | `search_files`、`run_sql`、`create_issue` |
+| **Resources** | Host / 用户决定何时拉取（也可由模型主动请求） | 一个文件的内容、一份 DB schema、一段日志 |
+| **Prompts** | 用户主动选择 | "代码 review 模板"、"会议纪要生成器" |
+
+#### 三层角色：Host / Client / Server
+
+务必区分清楚 —— 这是 MCP 文档里最容易让人混淆的点：
+
+- **Host**：你的应用程序（Claude Desktop / Cursor / 自研 Agent / IDE 插件）
+- **Client**：Host 内部的一个连接管理器，**一个 Server 对应一个 Client 实例**
+- **Server**：独立进程，暴露 tools / resources / prompts
+
+注意 LLM **不直接说 MCP**。模型只懂它自己 API 的 tool_use 格式（OpenAI / Anthropic schema）。MCP 协议跑在 **Host ↔ Server** 之间，Host 负责双向翻译：把 MCP `tools/list` 结果转成模型 API 的 tool schema 喂给 LLM；再把模型返回的 tool_call 转回 MCP 的 `tools/call` 请求。
+
+底层基于 **JSON-RPC 2.0**，且双向 —— Server 也能反向调用 Client（典型场景：`sampling`，Server 请求 Host 帮自己跑一次 LLM 推理）。
+
+#### MCP 核心架构图
+
+组件结构（一个 Host 同时挂载多个 Server）：
+
+```mermaid
+graph TB
+    User([👤 用户])
+
+    subgraph Host["Host 应用（Claude Desktop / Cursor / 自研 Agent）"]
+        LLM[🧠 LLM/Agent<br/>说自家 tool_use 协议]
+        subgraph Clients["MCP Clients（一个 Server 一个 Client）"]
+            C1[Client A]
+            C2[Client B]
+            C3[Client C]
+        end
+        LLM <-->|聚合的 tools| Clients
+    end
+
+    User <-->|自然语言| Host
+
+    C1 <-->|JSON-RPC 2.0<br/>stdio 传输| S1["MCP Server: filesystem<br/>(本地子进程)"]
+    C2 <-->|JSON-RPC 2.0<br/>Streamable HTTP| S2["MCP Server: GitHub<br/>(远程服务)"]
+    C3 <-->|JSON-RPC 2.0<br/>stdio 传输| S3["MCP Server: Postgres<br/>(本地子进程)"]
+
+    S1 --> R1[(本地文件系统)]
+    S2 --> R2[(GitHub API)]
+    S3 --> R3[(数据库)]
+```
+
+完整调用链路（一次工具调用的时序）：
+
+```mermaid
+sequenceDiagram
+    participant U as 👤 用户
+    participant H as Host (Agent)
+    participant L as 🧠 LLM
+    participant C as MCP Client
+    participant S as MCP Server
+    participant T as 真实资源/API
+
+    Note over H,S: 启动阶段（一次性）
+    C->>S: initialize(协商 capabilities)
+    S-->>C: 支持的原语集合
+    C->>S: tools/list
+    S-->>C: [{name, description, jsonSchema}, ...]
+
+    Note over U,T: 运行时（每轮对话）
+    U->>H: "查一下昨天合并的 PR"
+    H->>L: messages + 聚合后的 tool schema<br/>(已翻译成 LLM API 格式)
+    L-->>H: tool_call: search_prs(date="yesterday")
+    H->>C: 路由到对应 Server 的 Client
+    C->>S: tools/call {name, args} (JSON-RPC)
+    S->>T: 调用真正的 GitHub API
+    T-->>S: 原始结果
+    S-->>C: ToolResult
+    C-->>H: 标准化的工具结果
+    H->>L: messages + tool_result
+    L-->>H: 自然语言回答
+    H-->>U: 渲染最终答案
+```
+
+关键点回顾：
+
+- **每个 Client 只连一个 Server**，多 Server 靠多 Client 横向并存；
+- **LLM 视野里没有"MCP"这个词**，看到的是被 Host 翻译过的 tool schema；
+- **Server 可以反向调 Client**（sampling / elicitation 等场景）；
+- 工具的真正执行发生在 **Server 进程内**，Host 只是搬运 JSON。
+
+#### 客户端集成示例
+
+- 连接多个MCP服务器：`stage2-advanced/04-langgraph/03_module_tools/05_mcp/clients/multi_server.py`
+- 加载资源: `stage2-advanced/04-langgraph/03_module_tools/05_mcp/clients/load_resources_prompts.py`
+
+#### 自定义MCP Server示例(使用FastMCP)
+
+参考代码路径：`stage2-advanced/04-langgraph/03_module_tools/05_mcp/servers`
+
+- transport 类型的选取：
+
+| 场景 | Transport | 理由 |
+| --- | --- | --- |
+| 本地开发调试 | stdio | 低延迟、简单直接 |
+| 生产环境 | HTTP | 易扩展、易监控 |
+| Docker 容器 | HTTP | 标准化部署 |
+| 跨网络调用 | HTTP | 支持远程访问 |
+| IDE 集成 | stdio | 直接集成，无需网络 |
+
+- stateful v.s. stateless client
+客户端默认无状态，调用工具创建一个新的MCP会话（session），执行然后清理。这样方便快捷但是无法跨调用共享上下文并且每次都需要重新初始化、验证权限等等。
+
+如果需要控制MCP会话生命周期，可以创建一个 stateful client，手动管理 session 的创建和销毁。这样就可以在多个工具调用之间共享上下文信息（比如用户身份、权限、历史记录等），适合需要复杂交互的场景。
+
+```python
+with client.session("math") as session:
+    ...
+```
+
+整个调用链就变成了：创建session，打开session，调用工具（多次），关闭session，销毁session。这样就能保持会话、共享变量和上下文，也能适配很多需要事物操作的场景了。
+
+具体实践参考`stage2-advanced/04-langgraph/03_module_tools/05_mcp/servers/server_stateful.py`。
+
+#### 核心特性分析
+
+##### 工具Tools
+
+- **结构化内容**：MCP工具可以返回结构化内容以及类可读的本响应。这在工具需要返回机器可解析的数据（如JSON）以及展示给模型的文本时非常有用。(见`stage2-advanced/04-langgraph/03_module_tools/05_mcp/servers/data_server.py`)
+
+对应的客户端示例 —— 启动 `data_server.py` 后（默认 `http://127.0.0.1:8000/mcp`），直接调用工具拆出 `text` 和 `structured_content` 两部分：
+
+```python
+"""client_data_server.py — 调用 data_server 的结构化输出工具"""
+
+import asyncio
+import json
+
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+
+async def main():
+    client = MultiServerMCPClient(
+        {
+            "data": {
+                "transport": "streamable_http",
+                "url": "http://127.0.0.1:8000/mcp",
+            }
+        }
+    )
+
+    # 拿到工具后直接调用（绕过 LLM，学习阶段最直观）
+    tools = await client.get_tools()
+    get_user_profile = next(t for t in tools if t.name == "get_user_profile")
+
+    raw = await get_user_profile.ainvoke({"user_id": "u_001"})
+    payload = json.loads(raw)         # server 返回的 dict 已被序列化成 JSON 字符串
+
+    print(f"text             : {payload['text']}")
+    print(f"structured_content: {payload['structured_content']}")
+    # 业务侧用 payload['structured_content']，给 LLM 看 payload['text']
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+要点：
+
+- **工具可以绕过 Agent 直接调用**。`client.get_tools()` 返回标准 LangChain Tool，`await tool.ainvoke(args)` 即可调用 —— 学习/单测特别有用，不必搭整套 Agent。
+- **`dict` 返回值会被序列化成 JSON 字符串**。FastMCP 把 server 端的 dict 序列化进 ToolResult 的 text content，客户端拿到的是 `'{"text":"...","structured_content":{...}}'`。所以业务侧必须 `json.loads` 才能拿到 `structured_content`，不能直接当对象用。
+- **真接到 LLM 的话**，模型看到的是整个 JSON 字符串（包括 `structured_content` 那部分）。生产里通常把"给 LLM 的文本"和"业务自留的结构化数据"分两条通道，避免污染上下文。
+
+完整脚本：`stage2-advanced/04-langgraph/03_module_tools/05_mcp/clients/fetch_user_profile.py`（配 `servers/data_server.py`）
+
+- **多模态内容**：MCP具可以在其响应中返回多模态内容（图像、本等）。当MCP服务器返回包含多个部分的内容（例如本和图像）时，适配器会将其转换为LangChain的标准内容块。您可以通过content_blocks 属性访问标准化的表示形式。例如：
+
+```python
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain.agents import create_agent
+
+client = MultiServerMCClient({...})
+tools = await client.get_tools()
+agent = create_agent(model, tools)
+result = await agent.ainvoke({"messages"：[{"role"："user"，"content"："截取当前页面的屏幕截图"}]})
+#访问多模态内容
+for message in result["messages"]:
+    if message.type == "tool":
+        #以提供方本地格式提供的原始内容
+        print(f"Raw content: {message.content}")
+        #标准化的内容块
+        for block in message.content_blocks:
+            if block["type"]== "text":
+                print(f'Text: {block['text']}")
+            elif block["type"] == "image":
+                print(f"'Image URL: {block.get('url')}")
+                print(f"Image base64: {block.get('base64', '')[:50]}...")
+```
+
+##### 资源获取
+
+资源允许MCP服务器暴露数据一一如文件、数据库记录或API响应一一这些数据可以被客户端读取。LangChain将MCP资源转换为Blob对象，这些对象提供了处理文本和二进制内容的统一接口。参考代码`stage2-advanced/04-langgraph/03_module_tools/05_mcp/servers/files_server.py`。
+
+对应的客户端示例 —— 启动 `files_server.py` 后（默认监听 `http://127.0.0.1:8000/mcp`），用 `MultiServerMCPClient` 拉取静态与参数化两类资源：
+
+```python
+"""client_fetch_files.py — 拉取 files_server 暴露的 MCP 资源"""
+
+import asyncio
+
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+
+async def main():
+    client = MultiServerMCPClient(
+        {
+            "files": {
+                "transport": "streamable_http",
+                "url": "http://127.0.0.1:8000/mcp",
+            }
+        }
+    )
+
+    # 1) 列出 server 暴露的所有静态资源（参数化模板不会列出来，需按 URI 拉）
+    print("=== files 提供的静态资源 ===")
+    blobs = await client.get_resources("files")
+    for blob in blobs:
+        print(f"- URI: {blob.metadata.get('uri')} | MIME: {blob.mimetype}")
+        print(blob.as_string())
+
+    # 2) 按具体 URI 拉取参数化资源 docs://{category}/{filename}
+    print("\n=== 按 URI 拉取参数化资源 ===")
+    blobs = await client.get_resources(
+        "files",
+        uris=[
+            "config://app.json",                  # 静态资源也能这样点名拉
+            "docs://api/getting-started.md",      # 参数化资源
+            "docs://tutorial/quickstart.md",
+        ],
+    )
+    for blob in blobs:
+        print(f"- URI: {blob.metadata.get('uri')} | MIME: {blob.mimetype}")
+        print(blob.as_string())
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+关键点：
+
+- **`MultiServerMCPClient` 的配置 dict**：key 是你给 server 起的名字（`"files"`），值里 `transport` 必须对得上 server 端的 `mcp.run(transport=...)`；这里 server 用了 `streamable-http`，客户端就写 `streamable_http`（下划线）。
+- **`get_resources(server_name)` 不带 `uris`**：只返回**静态**资源（如 `config://app.json`）。参数化模板（`docs://{category}/{filename}`）必须显式传入完整 URI 才能获取，因为模板里的占位符客户端没法自动展开。
+- **返回值是 LangChain `Blob`**：`blob.as_string()` 拿文本；二进制内容用 `blob.data`；元信息（URI、MIME 类型）在 `blob.metadata`。这一层适配是 `langchain-mcp-adapters` 帮你做的，原生 MCP 协议返回的是 `ResourceContents`。
+
+运行步骤（两个终端）：
+
+```bash
+# 终端 1：启动 server
+uv run python stage2-advanced/04-langgraph/03_module_tools/05_mcp/servers/files_server.py
+
+# 终端 2：跑 client
+uv run python stage2-advanced/04-langgraph/03_module_tools/05_mcp/clients/fetch_files.py
+```
+
+完整脚本：`stage2-advanced/04-langgraph/03_module_tools/05_mcp/clients/fetch_files.py`（配 `servers/files_server.py`）
+
+##### 提示词模板
+
+提示使MCP服务器能够暴露可重用的提示模板，这些模板可以被客户端检索和使用。LangChain将MCP提示转换为消息，使其易于集成到基于聊天的工作流中。
+
+##### 拦截器（Interceptor）与回调（Callback）—— 进阶但部分必学
+
+`langchain-mcp-adapters` 在客户端侧提供了**拦截器**（对工具调用进行 AOP 包装，类似 agent middleware 的 wrap-style）和**回调**（处理 server 推送的事件，如进度 / 日志 / elicitation）。课程示例代码在 `stage2-advanced/04-langgraph/03_module_tools/05_mcp/advanced/` 下。
+
+**别一刀切当成可跳过**——这堆里有几个是生产硬需求，分两组对待：
+
+▼ **生产必学**（任何要上线的 MCP 集成都跑不掉这三件事）
+
+| 文件 | 解决什么 | 为什么必学 |
+|---|---|---|
+| `01_interceptor_inject_context.py` | 把 `user_id` / `api_key` 注入到每次工具调用 | 多租户 / SaaS / 任何 per-user 场景的硬需求；不能让 LLM 自己拼 user_id |
+| `03_interceptor_auth.py` | 拦截敏感工具做权限校验 | 给 LLM 接外部工具的系统必须有**这一层 guardrail**，否则 prompt injection 就能调危险操作 |
+| `04_interceptor_compose.py` | 多个拦截器的**洋葱组合**顺序 | 一旦你写了 >1 个拦截器（auth + tracing + 限流…），执行顺序就是它讲的事，错了就漏拦 |
+
+▼ **按需查阅**（用到再回头看，知道有这能力即可）
+
+| 文件 | 用途 | 何时回来看 |
+|---|---|---|
+| `02_interceptor_store.py` | 在拦截器里访问 Store 做个性化 | 需要"按用户偏好改工具参数"时 |
+| `05_interceptor_command.py` | 拦截器返回 `Command` 更新 state / 跳节点 | 复杂多 agent 编排 |
+| `06_progress_callback.py` | 长任务进度推送给客户端 | 前端要进度条 / spinner 时 |
+| `07_logging_callback.py` | 接收 server 推送的协议级日志 | 生产里通常用 LangSmith / OpenTelemetry 在更上层覆盖 |
+| `08_elicitation_client.py` | server 反向要求 client 补参数 | 目前 MCP 生态里极少 server 用这功能 |
+
+> **拦截器 vs Agent Middleware**：两者都是 AOP，但作用层不同。**Agent middleware** 拦的是 agent 循环（`before_model` / `wrap_tool_call`），对**所有**工具生效；**MCP 拦截器**拦的是 MCP 协议层的工具调用，只对**通过 MCP 进来**的工具生效。多租户上下文注入这种事最好放在 MCP 拦截器层，因为它就是 MCP 工具的"上行扩展点"——本地 `@tool` 不需要这层。
