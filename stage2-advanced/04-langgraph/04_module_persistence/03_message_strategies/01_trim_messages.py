@@ -3,11 +3,18 @@
 对应课程章节：模块四 / 4.2
 """
 
+import pathlib
+import sys
+
 from langchain_core.messages.utils import count_tokens_approximately, trim_messages
-from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, MessagesState, StateGraph
 
-model = ChatOpenAI(model="gpt-4o-mini")
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+)
+from _common import get_chat_model  # noqa: E402
+
+model = get_chat_model("qwen-max")
 
 
 def call_model_with_trimming(state: MessagesState):

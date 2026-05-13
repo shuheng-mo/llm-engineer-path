@@ -3,22 +3,20 @@
 对应课程章节：模块二 / 综合实践
 """
 
-import os
+import pathlib
+import sys
 import uuid
 
-from dotenv import load_dotenv
-from langchain_community.chat_models import ChatTongyi
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 
-load_dotenv()
-
-llm = ChatTongyi(
-    model="qwen-max",
-    api_key=os.getenv("DASHSCOPE_API_KEY"),
-    temperature=0.7,
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
 )
+from _common import get_chat_model  # noqa: E402
+
+llm = get_chat_model("qwen-max", temperature=0.7)
 
 
 class State(MessagesState):
@@ -119,6 +117,8 @@ def run_interactive():
 
 def run_auto_test():
     graph = build_graph()
+    # !!! 必须传 thread_id
+    # thread_id 是 checkpoint 的分桶键。同一个 thread_id 的所有 invoke 共享一条对话历史；不同 thread_id完全隔离。忘了传 thread_id，checkpointer 即使配了也不生效——这是新手最常踩的坑。
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
 
     print("\n" + "=" * 50)
@@ -138,5 +138,5 @@ def run_auto_test():
 
 
 if __name__ == "__main__":
-    run_auto_test()
-    # run_interactive()
+    # run_auto_test()
+    run_interactive()

@@ -3,22 +3,19 @@
 对应课程章节：模块四 / 4.4
 """
 
-import os
+import pathlib
+import sys
 
-from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, RemoveMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 
-load_dotenv()
-
-model = ChatOpenAI(
-    model=os.getenv("QWEN_MODEL_NLP", "qwen-max"),
-    base_url=os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
-    api_key=os.getenv("QWEN_API_KEY"),
-    temperature=0.3,
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
 )
+from _common import get_chat_model  # noqa: E402
+
+model = get_chat_model("qwen-max", temperature=0.3)
 
 
 class State(MessagesState):

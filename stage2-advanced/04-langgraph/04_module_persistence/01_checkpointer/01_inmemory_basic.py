@@ -3,23 +3,20 @@
 对应课程章节：模块四 / 2.2.1
 """
 
-import os
+import pathlib
+import sys
 
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, MessagesState, START, StateGraph
 
-load_dotenv()
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+)
+from _common import get_chat_model  # noqa: E402
 
 checkpointer = MemorySaver()
 
-model = ChatOpenAI(
-    model=os.getenv("QWEN_MODEL_NLP", "qwen-max"),
-    base_url=os.getenv("QWEN_BASE_URL"),
-    api_key=os.getenv("QWEN_API_KEY"),
-    temperature=0.3,
-)
+model = get_chat_model("qwen-max", temperature=0.3)
 
 
 def chatbot(state: MessagesState):

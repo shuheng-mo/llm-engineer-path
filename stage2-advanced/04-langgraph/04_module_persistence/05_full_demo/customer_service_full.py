@@ -4,10 +4,11 @@
 """
 
 import os
+import pathlib
+import sys
 
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, MessagesState, START, StateGraph
 from langgraph.store.postgres import PostgresStore
@@ -16,7 +17,13 @@ from psycopg_pool import ConnectionPool
 load_dotenv()
 
 DB_URI = os.getenv("DB_URI")
-model = ChatOpenAI(model="gpt-4")
+
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+)
+from _common import get_chat_model  # noqa: E402
+
+model = get_chat_model("qwen-max")
 
 pool = ConnectionPool(conninfo=DB_URI, min_size=5, max_size=20)
 checkpointer = PostgresSaver(pool)

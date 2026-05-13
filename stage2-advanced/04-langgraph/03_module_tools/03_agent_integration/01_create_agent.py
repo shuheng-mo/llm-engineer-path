@@ -3,20 +3,19 @@
 对应课程章节：模块三 / 2.1.3
 """
 
-import os
+import pathlib
+import sys
 from datetime import datetime
 
-from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.tools import tool
-from langchain_community.chat_models import ChatTongyi
 
-load_dotenv()
-
-model = ChatTongyi(
-    model="qwen-max",
-    api_key=os.getenv("DASHSCOPE_API_KEY"),
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
 )
+from _common import get_chat_model  # noqa: E402
+
+model = get_chat_model("qwen-max")
 
 
 @tool

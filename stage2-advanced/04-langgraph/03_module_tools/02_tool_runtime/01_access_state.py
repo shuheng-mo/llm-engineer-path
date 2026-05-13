@@ -17,6 +17,6 @@ def summarize_conversation(runtime: ToolRuntime) -> str:
 
 @tool
 def get_user_preference(pref_name: str, runtime: ToolRuntime) -> str:
-    """获取用户偏好设置"""
+    """获取自定义用户偏好设置"""
     preferences = runtime.state.get("user_preferences", {})
     return preferences.get(pref_name, "未设置")

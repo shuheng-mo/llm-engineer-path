@@ -3,14 +3,28 @@
 对应课程章节：模块三 / 2.2.3
 """
 
+from datetime import datetime
+
+from langchain.tools import tool
 from langchain_core.messages import AIMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
-# 复用 02_toolnode_basic.py 中定义的 tools
-# from .02_toolnode_basic import tools
 
-tools = []  # 占位 — 引用上一个文件的 tools
+# 与 02_toolnode_basic.py 中的 tools 保持一致（文件名以数字开头无法直接 import，故在此重新定义）
+@tool
+def get_weather(city: str) -> str:
+    """获取城市天气"""
+    return f"{city}的天气是晴天，25°C"
+
+
+@tool
+def get_time() -> str:
+    """获取当前时间"""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+tools = [get_weather, get_time]
 
 ai_message = AIMessage(
     content="",

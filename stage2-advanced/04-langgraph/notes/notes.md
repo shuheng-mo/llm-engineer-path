@@ -492,3 +492,229 @@ LangGraph支持图中嵌套图的设计，子图可以被多个父节点复用�
 > 注意： 子图和主图的state通过同名字段自动映射。
 
 ## 工具系统与Agent增强
+
+### 工具系统
+
+工具系统其实和RAG一样是拓展LLM能力边界的手段。LangGraph中使用`langchain.tools`中的`@tool`装饰器来定义工具函数，这些工具函数可以在图的节点中被调用。工具函数的输入输出会自动被序列化和反序列化，方便在图中使用。
+
+```python
+from langchain.tools import tool
+@tool("search")
+def search(query: str) -> str:
+    # 实现搜索逻辑
+    return "搜索结果"
+```
+
+类似于Skill，工具方法的Docstring是直接为LLM调用工具提供指南的最佳实践，LLM会根据Docstring来理解工具的功能和使用方法，从而正确地调用工具。
+
+```python
+@tool("calculator")
+def calculator(expression: str) -> str:
+    """
+    这是一个计算器工具，可以计算数学表达式的结果。
+    使用场景：
+    - 当需要进行数学计算时，可以调用这个工具。
+    输入格式：
+    - expression: 一个字符串，包含需要计算的数学表达式，例如 "2 + 2"。
+    输出格式：
+    - 返回一个字符串，表示计算结果，例如 "4"。
+    注意事项：
+    - 确保输入的表达式是合法的数学表达式，否则可能会导致计算错误。
+    """
+    # 实现计算逻辑
+    return "计算结果"
+```
+
+设计的原则很简单：**功能描述，使用场景，参数的具体说明，返回值的说明以及拓展的注意事项。**
+
+如果参数非常复杂，考虑使用Pydantic模型进行强类型验证，具体做法参考`stage2-advanced/04-langgraph/03_module_tools/01_tool_basics/03_pydantic_args.py`。
+
+- **ToolRuntime**统一上下文，为工具提供运行时对**状态、上下文、存储、流式处理、配置和工具调用ID时间**全盘访问。好处是不需要显式的传递或者显示全局的状态，符合我们之前提到的State的设计原则。
+
+参考代码`stage2-advanced/04-langgraph/03_module_tools/02_tool_runtime`下的示例，对工具如何访问这几个全局变量的方法都做了演示。
+
+- **工具的执行和错误处理**
+工具方法也分同步和异步，同步的任务已经见了很多，这里给一个异步的例子(把方法变成async就行)：
+
+```python
+import aiohttp
+
+@tool
+async def async_fetch(url: str) -> str:
+    """
+    这是一个异步工具，用于从指定URL获取数据。
+    使用场景：
+    - 当需要从网络上获取数据时，可以调用这个工具。
+    输入格式：
+    - url: 一个字符串，表示需要访问的URL地址，例如 "https://api.example.com/data"。
+    输出格式：
+    - 返回一个字符串，表示从URL获取的数据内容。
+    注意事项：
+    - 确保输入的URL是合法的，并且目标服务器可访问，否则可能会导致请求失败。
+    """
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.text()
+```
+
+实践中一定会涉及同步和异步的选取，简单来说计算密集型的任务（如复杂的文本处理、数据分析等）适合使用同步工具，而IO密集型的任务（如网络请求、大文件操作、数据库读写等）则更适合使用异步工具。
+
+对于错误处理，通常用`tenacity`的`retry,stop_after_attempt,wait_expotential`来修饰工具函数，来实现自动重试和指数退避等功能。
+
+```python
+from tenacity import retry, stop_after_attempt, wait_exponential
+from langchain.tools import ToolException
+
+@tool
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+def unreliable_tool(param: str) -> str:
+    ... # 实现可能会失败的工具逻辑
+    except Exception as e:
+        raise ToolException(f"工具执行失败: {str(e)}")
+```
+
+> 一个注意点：在ToolRuntime下参数config和runtime是保留的，不能被工具函数的参数列表占用，否则会导致运行时错误。tool方法的形参不能出现`config`和`runtime`，如果需要访问工具运行时上下文应该通过ToolRuntime对象来访问。
+
+### Agent与工具集成
+
+LangChain新版本中的创建新Agent的范式已经改变，具体可以参考`stage2-advanced/04-langgraph/03_module_tools/03_agent_integration/01_create_agent.py`.
+
+为了更方便的处理来自LLM的工具调用，LangGraph提供了`ToolNode`方便我们在构建图的过程中处理工具调用，我们不需要重复在图中编写如何选择工具并调用的逻辑，只需要绑定工具，用ToolNode包装工具调用然后用`tools_condition`自动处理工具调用即可。
+
+ToolNode会并行处理LLM返回的多个工具调用，匹配对应的工具函数、提取对应的参数并行执行这些工具调用最后格式化成ToolMessage返回给LLM。具体可以参考`stage2-advanced/04-langgraph/03_module_tools/03_agent_integration/03_toolnode_parallel.py`。
+
+### Middleware系统
+
+我们要理解一点，langGraph的agent和一般的graph节点是不一样的，`create_agent`内部其实是一个预制好的 StateGraph：
+
+```bash
+START → agent_node(call_model) ─┬─ tools_condition → END
+                                └─ tools_node → 回到 agent_node
+                                        ↑ 这个循环是 create_agent 帮你封死的
+```
+
+自定义State的例子中提到，AgentState的方案不如middleware是因为AgentState虽然也能存状态，但它的生命周期和agent_node绑定在一起，无法跨越工具调用的边界。而middleware是全局的，可以在agent_node和tools_node之间共享状态，适合处理工具调用的上下文信息。
+
+假设该场景，我们需要在state里加一个模型调用次数的计数器，要在每轮模型调用前+1，方案有：
+
+- 每个tool里return `{"cnt": +1}`，一方面污染tool增加无关的业务逻辑，而且tool不一定每次都被模型调用。
+- 自定义model.invoke的方法，但是相当于把agent层的责任转嫁给模型层，不合适
+- 不用create_agent，自己写agent的图结构，虽然可行但失去了create_agent的便利性
+
+Middleware相当于在agent_note和tool逻辑之间预留了几个固定时刻的hook：
+
+```bash
+before_model → call_model → after_model → tools_condition
+                                            ↓
+                              before_tool → call_tools → after_tool
+                                            ↓ (loop back)
+```
+
+可以对比create_agent的那个图来理解，middleware就是一个官方的AOP方案，所有需要横切的逻辑都可以放在整个middleware中，比如：**计数 / 截断 / guardrail / 审计 / token / 预算 / 重试**.
+
+> 总结一下，对于Agent使用的场景，如果只读不写，state_schema直接传可以，如果涉及截断或者需要更新，middleware。
+
+重点是要记住主要的Hook风格、执行时机和实际用途：
+
+- Node-style hooks:
+
+1. `before_agent`:在agent_node执行前触发，适合做一些agent级别的准备工作，比如初始化状态、权限检查。
+2. `before_model`:在模型调用前触发，适合做一些模型级别的准备工作，比如输入预处理、日志记录。
+3. `after_model`:在模型调用后触发，适合做一些模型级别的后处理工作，结果校验和计数。
+4. `after_agent`:在agent_node执行后触发，适合做一些agent级别的收尾工作，比如状态清理、总结Agent执行表现等。
+
+- Wrap-style hooks:
+
+1. `wrap_model_call`: 在模型调用时触发，可以完全控制模型调用的过程，适合做一些需要包裹整个模型调用的逻辑，比如重试、缓存、动态路由。
+2. `wrap_tool_call`: 在工具调用时触发，可以完全控制工具调用的过程，适合做一些需要包裹整个工具调用的逻辑，比如降级、监控、错误处理。
+
+```python
+agent = create_agent(
+    model = model,
+    middleware = [middleware1,middleware2,middleware3]
+)
+```
+
+对于上方这段伪代码，这些middleware的执行顺序的心智模型应该是这样的：
+
+```bash
+  START
+  │
+  ├─ before_agent          M1 → M2 → M3         (只在 agent 入口跑一次)
+  │
+  │ ┌──[ loop iteration 1 ]────────────────────────────────────────┐
+  │ │
+  │ │ before_model         M1 → M2 → M3         (每轮都跑)
+  │ │
+  │ │ wrap_model_call      洋葱嵌套:
+  │ │   M1 pre
+  │ │     M2 pre
+  │ │       M3 pre
+  │ │         ▶ 真正的 model.invoke
+  │ │       M3 post
+  │ │     M2 post
+  │ │   M1 post
+  │ │
+  │ │ after_model          M3 → M2 → M1         (倒序!)
+  │ │
+  │ │ tools_condition      若有 tool_calls →
+  │ │
+  │ │ wrap_tool_call       洋葱嵌套:
+  │ │   M1 pre
+  │ │     M2 pre
+  │ │       M3 pre
+  │ │         ▶ 真正的 tool 执行
+  │ │       M3 post
+  │ │     M2 post
+  │ │   M1 post
+  │ │
+  │ └──── loop back to before_model ────────────────────────────────┘
+  │
+  │ ┌──[ loop iteration N（最终，无 tool_calls）]────────────────────┐
+  │ │ before_model  → wrap_model_call → after_model → 退出循环
+  │ └────────────────────────────────────────────────────────────────┘
+  │
+  ├─ after_agent           M3 → M2 → M1         (只在 agent 出口跑一次)
+  │
+  END
+```
+
+> 总结下，node-style符合栈的调用顺序（进正出倒），wrap-style是洋葱模型。
+
+给一个具体的例子比如：
+
+```bash
+M1 = TraceMiddleware        # 开 span / 关 span
+M2 = RateLimitMiddleware    # 抢配额 / 还配额
+M3 = CounterMiddleware      # +1 计数 / 记录耗时
+
+每轮 model 调用实际顺序：
+
+before_model: open_span → acquire_quota → start_timer
+            ── 真正 model.invoke ──
+after_model : stop_timer → release_quota → close_span
+```
+
+#### 内置中间件
+
+LangGraph(`langchain.agents.middleware`)提供了一些内置的中间件，涵盖了常见的功能需求：
+
+| 中间件 | 功能描述 | 适用场景 |
+| --- | --- | --- |
+| **SummarizationMiddleware** | 自动总结对话历史，控制输入长度 | 长对话场景，避免上下文过长 |
+| **PIIMiddleware** | 自动检测和脱敏敏感信息 | 处理用户隐私数据的场景 |
+| **ToolCallLimitMiddleware** | 限制工具调用次数，防止滥用 | 需要控制成本或资源的场景 |
+
+其他常见的中间件，读文档学习：<https://docs.langchain.com/oss/python/langchain/middleware/built-in>
+
+#### 自定义中间件开发
+
+常见几种方式：
+
+1. 官方的装饰器
+2. 自定义类
+3. Wrap-style Hook
+4. Agent jumps
+5. 自定义State schema
+
+### MCP协议从

@@ -5,11 +5,11 @@
 
 import asyncio
 import os
+import pathlib
 import sys
 from typing import Annotated
 
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
@@ -20,12 +20,12 @@ load_dotenv()
 if not os.getenv("DB_URI"):
     raise ValueError("请在 .env 文件中配置 DB_URI")
 
-model = ChatOpenAI(
-    model=os.getenv("QWEN_MODEL_NLP", "qwen-max"),
-    base_url=os.getenv("QWEN_BASE_URL"),
-    api_key=os.getenv("QWEN_API_KEY"),
-    temperature=0.3,
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
 )
+from _common import get_chat_model  # noqa: E402
+
+model = get_chat_model("qwen-max", temperature=0.3)
 
 
 class State(TypedDict):

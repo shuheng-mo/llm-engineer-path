@@ -3,22 +3,20 @@
 对应课程章节：模块二 / 4.1
 """
 
-import os
+import pathlib
+import sys
 from operator import add
 from typing import Annotated, TypedDict
 
-from dotenv import load_dotenv
-from langchain_community.chat_models import ChatTongyi
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
-load_dotenv()
-
-llm = ChatTongyi(
-    model="qwen-max",
-    api_key=os.getenv("DASHSCOPE_API_KEY"),
-    temperature=0.7,
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
 )
+from _common import get_chat_model  # noqa: E402
+
+llm = get_chat_model("qwen-max", temperature=0.7)
 
 
 class State(TypedDict):

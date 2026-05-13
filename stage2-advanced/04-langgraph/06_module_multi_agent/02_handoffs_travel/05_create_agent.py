@@ -3,11 +3,10 @@
 对应课程章节：模块六 / 三 / Step 5
 """
 
-import os
+import pathlib
+import sys
 
-from dotenv import load_dotenv
 from langchain.agents import create_agent
-from langchain_community.chat_models import ChatTongyi
 from langgraph.checkpoint.memory import InMemorySaver
 
 # from .01_state import TravelPlanningState
@@ -17,9 +16,12 @@ from langgraph.checkpoint.memory import InMemorySaver
 # )
 # from .04_step_middleware import apply_step_config
 
-load_dotenv()
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+)
+from _common import get_chat_model  # noqa: E402
 
-model = ChatTongyi(model="qwen-max", api_key=os.getenv("DASHSCOPE_API_KEY"))
+model = get_chat_model("qwen-max")
 
 all_tools = [
     record_preferences,
