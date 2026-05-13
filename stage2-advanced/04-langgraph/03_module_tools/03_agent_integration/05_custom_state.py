@@ -5,32 +5,17 @@
 
 import pathlib
 import sys
-from datetime import datetime
 
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware import AgentMiddleware
-from langchain.tools import tool
 from typing_extensions import NotRequired
 
 sys.path.insert(
     0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
 )
-from _common import get_chat_model  # noqa: E402
+from _common import get_chat_model, get_time, get_weather  # noqa: E402
 
 model = get_chat_model("qwen-max")
-
-
-@tool
-def get_weather(city: str) -> str:
-    """获取城市天气"""
-    return f"{city}的天气是晴天，25°C"
-
-
-@tool
-def get_time() -> str:
-    """获取当前时间"""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
 
 tools = [get_weather, get_time]
 

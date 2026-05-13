@@ -6,6 +6,9 @@
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware import after_model, before_model
 from langgraph.runtime import Runtime
+from _common import get_chat_model
+
+model = get_chat_model()
 
 
 @before_model(can_jump_to=["end"])

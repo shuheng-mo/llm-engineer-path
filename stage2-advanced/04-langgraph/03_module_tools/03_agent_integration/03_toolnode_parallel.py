@@ -3,26 +3,17 @@
 对应课程章节：模块三 / 2.2.3
 """
 
-from datetime import datetime
+import pathlib
+import sys
 
-from langchain.tools import tool
 from langchain_core.messages import AIMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
-
-# 与 02_toolnode_basic.py 中的 tools 保持一致（文件名以数字开头无法直接 import，故在此重新定义）
-@tool
-def get_weather(city: str) -> str:
-    """获取城市天气"""
-    return f"{city}的天气是晴天，25°C"
-
-
-@tool
-def get_time() -> str:
-    """获取当前时间"""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+sys.path.insert(
+    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+)
+from _common import get_time, get_weather  # noqa: E402
 
 tools = [get_weather, get_time]
 
