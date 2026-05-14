@@ -1098,3 +1098,26 @@ test_{test_case_name}
 相比之下，PostgresSQL是生产下最有性价比的方案，对应的示例代码在`stage2-advanced/04-langgraph/04_module_persistence/01_checkpointer`。
 
 ### 长期记忆
+
+Store相比checkpointer有以下不同：
+
+- 数据侧重：用户属性、知识库、偏好
+- 隔离的逻辑是namespace+key，而不是thread_id
+- 通常采用手动查询或者**语义检索**的方式获取对应的数据
+- 生命周期通常比checkpointer更长
+
+参考代码的位置：`stage2-advanced/04-langgraph/04_module_persistence/02_store`下的代码。
+
+就像上面列出的一样，命名空间的设计是最重要的部分，常见的命名空间的设计原则是：
+
+1. **按数据分类**
+2. **按用户隔离**
+3. **层级清晰，最好不要超过3层**
+
+当用户有了大量的历且记忆模糊的时候，就可以通过语义搜索的方式来获取相关的记忆了，LangGraph原生支持基于向量数据库的语义搜索，具体的实现可以参考`stage2-advanced/04-langgraph/04_module_persistence/02_store/semantic_search_XX.py`。
+
+底层原理很简单，就是之前提到的**向量化**和**相似度搜索**，把文本数据转成向量存储在数据库里（这里是InMemoryStore），然后查询的时候把查询文本也转成向量，通过计算向量之间的距离来找到最相关的记忆。
+
+#### 生产级Store
+
+当然，生产不是小打小闹，终究需要用真正的数据库来存储，参考`stage2-advanced/04-langgraph/04_module_persistence/02_store/04_postgres_store.py`来进行长期store。

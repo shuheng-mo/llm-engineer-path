@@ -28,6 +28,7 @@ memories = [
 for i, memory in enumerate(memories):
     store.put(("user_memories", "user_123"), key=str(i), value={"text": memory})
 
+print("问：用户的饮食习惯是什么？")
 results = store.search(("user_memories", "user_123"), query="用户的饮食习惯是什么？", limit=2)
 for item in results:
     print(item.value["text"])

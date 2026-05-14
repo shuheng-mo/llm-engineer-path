@@ -21,9 +21,12 @@ LangGraph 的 `Checkpointer` 把 graph 每一步 state 落到外部存储，用�
 
 ```bash
 # PostgreSQL —— 03 / 04 用
+# ⚠️ 用 pgvector/pgvector:pg16 而不是 postgres:16：
+#   下一节 02_store/ 的 PostgresStore 需要 pgvector 扩展，统一用这个镜像可以
+#   一个容器同时服务 checkpointer + store。功能上是 postgres:16 的超集。
 docker run -d --name langgraph-pg \
   -e POSTGRES_USER=user -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=langgraph \
-  -p 5432:5432 postgres:16
+  -p 5432:5432 pgvector/pgvector:pg16
 
 # Redis Stack（含 RedisSearch，langgraph-checkpoint-redis 必须）—— 05 用
 docker run -d --name langgraph-redis \
@@ -91,3 +94,9 @@ docker rm -f langgraph-pg langgraph-redis langgraph-mongo
 ```
 
 数据全部丢失，重跑会重新建表/集合 + 重新落 checkpoint，不影响示例。
+
+## 下一节
+
+`../02_store/` 演示 `Store`（跨 thread 长期记忆 / 语义检索）。其中 `04_postgres_store.py`
+复用本节的 `langgraph-pg` 容器（前提是用 `pgvector/pgvector:pg16` 镜像），只需要额外
+建一个 `langgraph_store` 数据库 —— 详见 [`../02_store/README.md`](../02_store/README.md)。

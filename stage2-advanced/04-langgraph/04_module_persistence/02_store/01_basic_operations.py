@@ -16,8 +16,8 @@ store.put(
 
 # 检索单条
 preference = store.get(("user_preferences", "user_123"), "language")
-print(preference)
+print(f"prefernce: {preference}")
 
 # 列出所有 key
 keys = store.search(("user_preferences", "user_123"))
-print(keys)
+print(f"desired key: {keys}")
