@@ -4,9 +4,31 @@
 """
 
 from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, MessagesState, START, StateGraph
+import pathlib
+import sys
 
-# from .01_inmemory_basic import graph
-graph = None  # 占位 — 在实际项目中 import 上一步的 graph
+sys.path.insert(
+    0,
+    str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph")),
+)
+from _common import get_chat_model  # noqa: E402
+
+model = get_chat_model("qwen-turbo", temperature=0.7, top_p=0.9)
+
+checkpointer = MemorySaver()
+
+
+def chatbot(state: MessagesState):
+    return {"messages": [model.invoke(state["messages"])]}
+
+
+builder = StateGraph(MessagesState)
+builder.add_node("chat", chatbot)
+builder.add_edge(START, "chat")
+builder.add_edge("chat", END)
+graph = builder.compile(checkpointer=checkpointer)  # 占位 — 在实际项目中 import 上一步的 graph
 
 thread_config = {"configurable": {"thread_id": "session_user_123"}}
 

@@ -23,7 +23,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain.tools import tool
 from langchain_community.chat_models import ChatTongyi
-from pydantic import SecretStr
 
 # 显式加载 04-langgraph/.env，避免脚本从 repo 根运行时找不到
 load_dotenv(Path(__file__).with_name(".env"))
@@ -31,7 +30,7 @@ load_dotenv(Path(__file__).with_name(".env"))
 
 @lru_cache(maxsize=None)
 def get_chat_model(
-    name: str = "qwen-max",
+    name: str = "qwen-plus",
     temperature: float | None = None,
     top_p: float | None = None,
 ) -> ChatTongyi:
@@ -39,11 +38,27 @@ def get_chat_model(
 
     同一组参数多次调用返回同一对象；不同参数组合各自缓存一份。
     `bind_tools()` 返回的是新 Runnable 不会改写缓存，可安全链式调用。
+
+    ── 模型名约定 ──────────────────────────────────────────
+    ChatTongyi 走的是「原生 DashScope 端点」(dashscope.aliyuncs.com/api/v1)，
+    它只认稳定别名，**不要写带版本号的名字**：
+
+      ✅ qwen-turbo / qwen-flash / qwen-plus / qwen-max / qwen3-max
+      ❌ qwen3.5-flash / qwen3.5-plus / qwen3.6-flash / qwen3-plus
+         （这些只在 OpenAI 兼容端点 /compatible-mode/v1 可用，
+          Bailian console 显示的就是那边的名字，会和这里对不上）
+
+    四个无版本号别名永远指向各档位「当前稳定最新版」，写死即可。
+
+    ── 已知 gotcha ────────────────────────────────────────
+    api_key 直接传原始字符串，让 pydantic 自动包装为 SecretStr。
+    手动 SecretStr(...) 会被 pydantic v2 二次序列化成 '**********' 字面值，
+    导致 dashscope 返回 401 InvalidApiKey。
     """
     api_key = os.getenv("DASHSCOPE_API_KEY")
     if not api_key:
         raise RuntimeError("DASHSCOPE_API_KEY 未设置 — 请在 04-langgraph/.env 中配置")
-    kwargs: dict = {"model": name, "api_key": SecretStr(api_key)}
+    kwargs: dict = {"model": name, "api_key": api_key}
     if temperature is not None:
         kwargs["temperature"] = temperature
     if top_p is not None:

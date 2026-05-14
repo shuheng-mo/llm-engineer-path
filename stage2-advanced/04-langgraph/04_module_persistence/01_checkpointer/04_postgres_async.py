@@ -15,13 +15,16 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
+# from psycopg_pool import AsyncConnectionPool # 也可以使用异步连接池
+
 load_dotenv()
 
 if not os.getenv("DB_URI"):
     raise ValueError("请在 .env 文件中配置 DB_URI")
 
 sys.path.insert(
-    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+    0,
+    str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph")),
 )
 from _common import get_chat_model  # noqa: E402
 

@@ -25,7 +25,7 @@ sys.path.insert(
 )
 from _common import get_chat_model  # noqa: E402
 
-model = get_chat_model("qwen-max", temperature=0.3)
+model = get_chat_model("qwen-turbo", temperature=0.3)
 
 
 class State(TypedDict):
@@ -45,12 +45,13 @@ builder.add_edge("chatbot", END)
 redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST"),
     port=int(os.getenv("REDIS_PORT", 6379)),
-    db=12,
-    password=os.getenv("REDIS_PASSWORD"),
+    db=0,  # langgraph-checkpoint-redis 用 RedisSearch，索引只能建在 db=0
+    password=os.getenv("REDIS_PASSWORD") or None,
     # decode_responses=False —— LangGraph 序列化通常是二进制
 )
 
 checkpointer = RedisSaver(redis_client=redis_client)
+checkpointer.setup()  # 首次运行建 RedisSearch 索引（幂等）
 graph = builder.compile(checkpointer=checkpointer)
 
 

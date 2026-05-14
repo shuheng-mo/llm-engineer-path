@@ -44,7 +44,14 @@ builder.add_edge("chatbot", END)
 
 DB_URI = os.getenv("DB_URI")
 
-with ConnectionPool(conninfo=DB_URI, min_size=1, max_size=10) as pool:
+# autocommit=True 是必须的：PostgresSaver.setup() 里有
+# CREATE INDEX CONCURRENTLY，禁止在事务块内执行。
+with ConnectionPool(
+    conninfo=DB_URI,
+    min_size=1,
+    max_size=10,
+    kwargs={"autocommit": True, "prepare_threshold": 0},
+) as pool:
     checkpointer = PostgresSaver(pool)
     # 首次运行时取消下行注释建表（幂等）
     # checkpointer.setup()

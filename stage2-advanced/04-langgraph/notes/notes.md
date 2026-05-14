@@ -1024,3 +1024,77 @@ uv run python stage2-advanced/04-langgraph/03_module_tools/05_mcp/clients/fetch_
 | `08_elicitation_client.py` | server 反向要求 client 补参数 | 目前 MCP 生态里极少 server 用这功能 |
 
 > **拦截器 vs Agent Middleware**：两者都是 AOP，但作用层不同。**Agent middleware** 拦的是 agent 循环（`before_model` / `wrap_tool_call`），对**所有**工具生效；**MCP 拦截器**拦的是 MCP 协议层的工具调用，只对**通过 MCP 进来**的工具生效。多租户上下文注入这种事最好放在 MCP 拦截器层，因为它就是 MCP 工具的"上行扩展点"——本地 `@tool` 不需要这层。
+
+## 持久化与内存管理
+
+LangGraph应用中每一次graph.invoke都会重新开始处理任务，如果这样的话Agent记不住之前对话的内容、状态也无法在多轮交互中进行保持，任务如果失败回滚那就需要从头开始。
+
+这里的持久化和RAG的概念不一样，聚焦的是**Agent的状态持久化**，也就是我们之前提到的State。通过持久化State，我们可以实现Agent的记忆功能、多轮对话状态保持、任务回滚等功能。这样的话即使整个graph重启，Agent也能从上次的状态继续执行，而不是从头开始，如果是分布式的系统的话也可以在多个实例中被共享。
+
+| 问题场景 | 传统方案 | LangGraph 持久化方案 |
+| --- | --- | --- |
+| 多轮对话 | 手动管理消息列表 | 自动保存到 Checkpointer，支持会话隔离 |
+| 故障恢复 | 任务失败需重新执行 | 从最后一个检查点恢复，避免重复工作 |
+| 用户画像 | 数据散落在各处 | Store 统一管理，支持语义搜索 |
+| 版本控制 | 无法回退到历史状态 | 自动保存所有版本，支持时光回溯 |
+
+提到Agent，持久化一定是短期和长期并行，LangGraph的内存机制也是如此：
+
+| 内存类型 | 短期内存（Checkpointer） | 长期内存（Store） |
+| --- | --- | --- |
+| 作用范围 | 单个对话线程内（`thread_id`） | 跨对话、跨会话（全局） |
+| 存储内容 | 对话消息、中间状态、执行快照 | 用户偏好、历史摘要、知识库数据 |
+| 生命周期 | 对话期间（可设置过期时间） | 永久保存（需手动删除） |
+| 典型场景 | 多轮对话、任务执行、错误恢复 | 用户画像、个性化推荐、知识积累 |
+
+这两者互相互补，Checkpointer管理当前对话上下文，Store管理跨对话的用户偏好数据。
+
+### Checkpointer
+
+理解为LangGraph里每个关键步骤自动保存的状态的快照，它的核心作用是：
+
+- 时间机器：可以快速回到对话的任意时刻
+- 存档点：记录当前的完整状态，包括历史消息、变量的值
+- 版本控制：类似整个graph的git，也支持分支和回退的操作
+
+工作原理也很简单，在整个graph一开始传入一个`checkpointer`对象：
+
+- **在Node执行前**，读当前`thread_id`的最新checkpoint
+- **在Node执行后**，自动保存新的checkpoint（如果状态有变更）
+- **整个图如果完成执行**，标记当前检查点为最新的状态。
+
+如果对之前的章节有印象，`thread_id`对于checkpointer非常重要，类似于数据库的主键，是用来区分不同的用户或者对话的唯一标识符。就像访问网络一样，每个会话有不一样的session_id,LangGraph的每一个会话必须有唯一的thread_id，同一个thread_id在多次调用图的过程中也应该保持不变，且被thread_id标记的会话数据之间应该完全隔离。
+
+- thread_id命名规范最佳实践(参考，重点是不同类型会话一定分类别进行标识)
+
+```bash
+# 用户会话：
+user_{user_id}_{session_id}
+# 临时对话：
+temp_{timestamp}
+# 测试环境：
+test_{test_case_name}
+```
+
+#### 开发环境
+
+对于开发环境和快速的原型验证，`langgraph.checkpointer.memory.MemorySaver`是很好的一种检查点的实现。具体的使用参考`stage2-advanced/04-langgraph/04_module_persistence/01_checkpointer`下的代码。
+
+#### 生产环境
+
+真正的生产级的持久化，还是需要数据库方案，LangGraph原生支持以下3种数据库方案：
+
+| 特性 | PostgreSQL | Redis | MongoDB |
+| --- | --- | --- | --- |
+| 数据持久化 | 强持久化 | 需配置 AOF/RDB | 强持久化 |
+| 查询能力 | SQL + 索引 | 基础 KV | 灵活查询 |
+| 性能 | 良好（千级 QPS）+ pgvector | 极快（万级 QPS） | 良好 |
+| 向量搜索 | 需扩展（pgvector） | 需模块（RedisSearch） | Atlas Search |
+| 事务支持 | ACID | 有限 | 4.0+ 支持 |
+| 运维成本 | 中等 | 低 | 中等 |
+| 适用场景 | 通用首选 | 高性能缓存 | 文档型数据 |
+| 成本 | 中等 | 低 | 中等 |
+
+相比之下，PostgresSQL是生产下最有性价比的方案，对应的示例代码在`stage2-advanced/04-langgraph/04_module_persistence/01_checkpointer`。
+
+### 长期记忆
