@@ -1139,3 +1139,39 @@ Store相比checkpointer有以下不同：
 3. 总结更符合用户使用的直觉，适合对话内容较长且需要保留完整上下文的场景。总结后的文本通常比原始消息更短，可以有效地减少上下文长度，同时保留关键信息。
 
 ### 管理检查点
+
+- 可以对当前图的检查点或者特定的某一个检查点进行查看：
+
+```python
+config = {
+    "configurable": {
+        "thread_id": "session_user_123",
+        # 可选：指定特定 checkpoint
+        # "checkpoint_id": "1f029ca3-1f5b-6704-8004-820c16b69a5a",
+    }
+}
+
+state = graph.get_state(config)        # noqa: F821
+print(state)
+```
+
+返回的是该state的一个快照。
+
+- 从版本控制的角度出发，我们可以通过config中的threa_id获取到该线程下的所有检查点的历史，参考如下的获取方式：
+
+```python
+config = {"configurable": {"thread_id": "session_user_123"}}
+
+history = list(graph.get_state_history(config))   # noqa: F821
+for snapshot in history:
+    print(f"步骤 {snapshot.metadata['step']}: {snapshot.values['messages'][-1].content}")
+```
+
+- 还有删除线程的所有检查点的逻辑，参考代码`stage2-advanced/04-langgraph/04_module_persistence/04_checkpoint_management/03_delete_thread.py`
+
+### 高级用法说明
+
+1. LangGraph父图的checkpointer会在编译时自动传导到子图，不需要为子图构建checkpointer。
+2. 如果子图希望有自己独立的内存，可以用在compile方法中用`checkpointer=True`来指定。
+
+## 人机协作与流式输出
