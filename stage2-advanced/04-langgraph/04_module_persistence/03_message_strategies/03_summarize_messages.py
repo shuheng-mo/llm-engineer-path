@@ -8,10 +8,12 @@ import sys
 
 from langchain_core.messages import HumanMessage, RemoveMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, MessagesState, StateGraph
 
 sys.path.insert(
-    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+    0,
+    str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph")),
 )
 from _common import get_chat_model  # noqa: E402
 
@@ -59,7 +61,7 @@ app = workflow.compile(checkpointer=MemorySaver())
 
 
 if __name__ == "__main__":
-    config = {"configurable": {"thread_id": "qwen_memory_test"}}
+    config: RunnableConfig = {"configurable": {"thread_id": "qwen_summary_test"}}
     questions = [
         "我叫 Alice，我有一只叫 Luna 的猫。",
         "Luna 喜欢吃金枪鱼罐头。",
