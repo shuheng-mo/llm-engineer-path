@@ -1175,3 +1175,44 @@ for snapshot in history:
 2. 如果子图希望有自己独立的内存，可以用在compile方法中用`checkpointer=True`来指定。
 
 ## 人机协作与流式输出
+
+### human in the loop
+
+在AI不确定如何做或者决策具有高风险的时候， 我们需要能有一个机制让人类参与到决策过程中来，这就是Human in the Loop（HITL）的概念。常见的场景有：
+
+- 高风险决策：如医疗诊断、金融投资等领域，AI的错误可能导致严重后果，需要人类进行最终审核。
+- 模糊意图：当用户的输入不明确或者具有多重解释时，AI可以请求人类提供更多信息或者确认。
+- 伦理审查：当AI的决策可能涉及伦理问题时，人工审核。
+
+LangGraph中实现起来也非常简单，在编译图的时候传入中断参数即可。只是在使用中断的的时候3要素缺一不可：
+
+1. **必须配置 checkpointer (保存状态)**
+2. **指定 interrupt_before 或 interrupt_after**
+3. **使用thread_id 标识会话**
+
+```python
+#在执'publisher'节点前暂停
+graph = workflow.compile(
+    checkpointer=memory,
+    interrupt_before=["publisher"] # 假设有一个publisher节点
+)
+````
+
+暂停的时候整个程序的执行流程被挂起，我们这个时候可以乘机对当前的状态进行查看，甚至修改状态（比如改消息内容、改变量值）来影响后续的执行流程。等我们准备好了之后再继续执行：
+
+```python
+# 获取当前状态
+state_snapshot = graph.get_state({"configurable": {"thread_id": "session_user_123"}})  # noqa: F821
+print(state_snapshot.values) # 打印当前状态的值
+print(state_snapshot.next) # 打印下一个要执行的节点和输入
+
+# 修改状态
+graph.update_state(
+    thread_config,
+    {"user_feedback"："批准"，"data_field"："修正后的值"}, as_node="human_node" # 伪装成'human_node'产生的输出
+)
+
+# 恢复执行: 对于stream或者invoke传入None，表示从上次中断的地方继续执行
+for event in graph.stream(None,thread_config):
+    print(event)
+```

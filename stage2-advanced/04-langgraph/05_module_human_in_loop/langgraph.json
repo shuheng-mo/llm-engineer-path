@@ -1,9 +1,9 @@
 {
-  "dependencies": ["./src"],
+  "dependencies": ["."],
   "graphs": {
     "destination_agent": "./research_assistant.py:app_v4"
   },
-  "env": ".env",
+  "env": "../.env",
   "cors": {
     "enabled": true,
     "allow_origins": [

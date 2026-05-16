@@ -2,29 +2,25 @@
 
 对应课程章节：模块五 / 4.1 实战
 
-依赖:
-uv pip install tavily-python
-"""
-
-"""
-研报助手 V4 - 人工审核闭环（单文件完整版）
-
 运行前请设置环境变量：
   export DASHSCOPE_API_KEY=sk-xxx
-  export TAVILY_API_KEY=tvly-xxx
 
 流程：
   用户输入主题 → AI 搜索撰写 → 暂停等人工审核
     → 批准 → 发布
     → 修改意见 → AI 重写 → 再次审核 → ...
+
+注：搜索工具使用本地 mock 实现，避免为单个 demo 配置 Tavily API key。
 """
+
 import pathlib
 import sys
 import uuid
 from typing import Annotated, Literal
 
-from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
@@ -32,7 +28,8 @@ from langgraph.prebuilt import ToolNode
 from typing_extensions import TypedDict
 
 sys.path.insert(
-    0, str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph"))
+    0,
+    str(next(p for p in pathlib.Path(__file__).resolve().parents if p.name == "04-langgraph")),
 )
 from _common import get_chat_model  # noqa: E402
 
@@ -49,7 +46,20 @@ class State(TypedDict):
 # ============================================================
 model = get_chat_model("qwen-max", temperature=0.7)
 
-search_tool = TavilySearchResults(max_results=3)
+
+@tool
+def search_tool(query: str) -> str:
+    """根据查询关键词搜索网络资料，返回相关摘要。用于研报撰写前的资料检索。"""
+    return (
+        f"[Mock 搜索结果 - query: {query}]\n"
+        "1. 行业研究院 2025 年报告显示，相关市场规模同比增长约 28%，主要驱动来自政策扶持与技术迭代。\n"
+        "2. 头部厂商市占率前三合计约 55%，竞争格局趋于集中，但腰部玩家通过差异化路线仍有增长空间。\n"
+        "3. 风险提示：宏观需求波动、原材料价格上行、海外贸易摩擦可能压制短期盈利。\n"
+        "4. 趋势展望：未来 3 年复合增速预计 15-20%，AI 与新能源相关赛道为主要增量来源。\n"
+        "（数据来源：Mock 数据，仅用于课程演示，未对接真实搜索 API。）"
+    )
+
+
 tools = [search_tool]
 model_with_tools = model.bind_tools(tools)
 
@@ -125,9 +135,9 @@ workflow.add_conditional_edges(
 )
 workflow.add_edge("publisher", END)
 
-memory = MemorySaver()
+# 模块级 graph：供 `langgraph dev` 加载使用。LangGraph API 自带 checkpointer，
+# 这里不能再传 checkpointer，否则会被拒绝加载。
 app_v4 = workflow.compile(
-    checkpointer=memory,
     interrupt_before=["human_review"],  # 关键：在人工审核节点前暂停
 )
 
@@ -153,8 +163,15 @@ def print_ai_response(messages):
 # 7. 主程序入口
 # ============================================================
 def run():
+    # CLI 模式下手动挂一个 MemorySaver，让 interrupt_before + update_state 能跨轮保存 state。
+    # langgraph dev 加载的是模块级 app_v4（无 checkpointer，平台自带）。
+    app = workflow.compile(
+        checkpointer=MemorySaver(),
+        interrupt_before=["human_review"],
+    )
+
     thread_id = str(uuid.uuid4())
-    config = {"configurable": {"thread_id": thread_id}}
+    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
 
     print("\n" + "=" * 60)
     print("  📊 研报助手 V4 - 人工审核版")
@@ -180,7 +197,7 @@ def run():
 
     print("\n⏳ AI 正在搜索资料并撰写草稿，请稍候...\n")
 
-    for event in app_v4.stream(
+    for event in app.stream(
         {"messages": [HumanMessage(content=initial_prompt)]},
         config=config,
         stream_mode="values",
@@ -194,7 +211,7 @@ def run():
                 elif last_msg.type == "tool":
                     print(f"  ✅ 工具返回结果（{len(last_msg.content)} 字符）")
 
-    current_state = app_v4.get_state(config)
+    current_state = app.get_state(config)
     print_ai_response(current_state.values["messages"])
 
     while True:
@@ -215,10 +232,10 @@ def run():
             return
 
         # 把审核意见注入 state（human-in-the-loop 的核心）
-        app_v4.update_state(config, {"messages": [HumanMessage(content=user_input)]})
+        app.update_state(config, {"messages": [HumanMessage(content=user_input)]})
 
         print("\n处理中...\n")
-        for event in app_v4.stream(None, config=config, stream_mode="values"):
+        for event in app.stream(None, config=config, stream_mode="values"):
             if "messages" in event:
                 last_msg = event["messages"][-1]
                 if hasattr(last_msg, "type"):
@@ -228,7 +245,7 @@ def run():
                     elif last_msg.type == "tool":
                         print(f"  ✅ 工具返回结果（{len(last_msg.content)} 字符）")
 
-        current_state = app_v4.get_state(config)
+        current_state = app.get_state(config)
         if current_state.next:
             print_ai_response(current_state.values["messages"])
         else:
