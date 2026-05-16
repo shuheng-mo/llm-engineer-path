@@ -1196,7 +1196,7 @@ graph = workflow.compile(
     checkpointer=memory,
     interrupt_before=["publisher"] # 假设有一个publisher节点
 )
-````
+```
 
 暂停的时候整个程序的执行流程被挂起，我们这个时候可以乘机对当前的状态进行查看，甚至修改状态（比如改消息内容、改变量值）来影响后续的执行流程。等我们准备好了之后再继续执行：
 
@@ -1215,4 +1215,158 @@ graph.update_state(
 # 恢复执行: 对于stream或者invoke传入None，表示从上次中断的地方继续执行
 for event in graph.stream(None,thread_config):
     print(event)
+
 ```
+
+#### 充分理解中断机制
+
+除了在编译的时候配置中断的节点，我们也可以使用interrupt()函数在节点内部触发中断。该函数的运行机制如下（调用时），主要记住三个点：
+
+1. 暂停：函数抛出个特殊的异常，运时捕获该异常并将图的状态保存，然后暂停执。
+2. 恢复：当提供输并恢复执时，LangGraph不会从interrupt调用的下一行继续运行，**是从该节点的起始位置重新运整个函数**。
+3. 匹配：在重运时，LangGraph会根据中断的**顺序索引**将新的输值填充给对应的 interrupt 变量，从“伪装”成函数继续执的样子。
+
+对于节点中的中断，**有几个重要的原则**
+：
+
+1. 避免错误的异常捕获。节点内的捕获通常非常依赖异常机制来暂停，简单来说不要用`except`或者`except Exception`来捕获所有异常，这样会把中断的特殊异常也捕获了，导致图无法正确暂停。**正确的做法是，把中断的逻辑从try中移动出来，先执行中断再去捕获可能出现的业务异常**。
+2. 保持中断的一致性。确保中断的顺序和逻辑在不同的执行路径中保持一致，以避免状态不一致或意外行为。比如说不要把中断放在某个条件判断里，这样的话在执行的过程中有可能会被动态跳过，导致索引的顺序错乱，就会出现运行的错误。
+3. 中断方法的函数参数会被checkpointer序列化并做持久化，所以传递给interrupt的参数类型一定要是**可序列化的**(字符串、数字、字典、列表)，不能是函数、对象或者复杂的类实例。
+4. 中断的输入值应该是**幂等的**，也就是说无论中断被触发多少次，传入的值都应该是一样的。这样才能保证图在恢复执行时能够正确地继续下去，而不会因为输入值的变化而导致不可预测的行为。不要在中断前执行更新性操作，或者确保即使执行了也不会对后续的执行产生影响。
+
+### 流式输出
+
+`.invoke()`的调用方法其实就是非流式的请求方法，一只等到整个调用结束才返回，这样用户体验肯定很差。
+流式输出的方式就是在调用的时候用`.stream()`方法(或者`.astream()`)，拿到一个异步生成器，**每当有新的输出事件产生就会被yield出来**，用户可以边看结果边等待后续的结果输出，极大地提升了用户体验。
+
+```python
+async for event in graph.stream(input, thread_config):
+    print(event)
+```
+
+`.stream()`方法的`stream_mode`参数搭配可以支撑多种模式，要针对场景来选择合适的方法：
+
+| 模式 (stream_mode) | 返回内容 | 典型用途 | 类似于 |
+| --- | --- | --- | --- |
+| `updates`（默认） | 仅当前节点产生的增量状态 | 更新进度条（"搜索完成""草稿完成"） | `git diff` |
+| `values` | 当前图的完整状态 | 调试、需要上下文的 UI | `git commit` |
+| `messages` | LLM 生成的 Token + 元数据 | 打字机效果（ChatGPT 体验） | `stdout` |
+| `custom` | 开发者手动发送的自定义数据 | 发送进度百分比、自定义信号 | `logging` |
+| `debug` | 极其详细的内部执行日志 | 排查死循环、Token 消耗分析 | System Logs |
+
+下面用**同一张图**跑五种 `stream_mode`，对比同一次执行下各自吐出来的事件长什么样。图非常简单：`search → write`，其中 `write` 节点里调用 LLM，并通过 `get_stream_writer()` 推送一条自定义进度。
+
+```python
+from typing import TypedDict
+from langchain_openai import ChatOpenAI
+from langgraph.graph import StateGraph, START, END
+from langgraph.config import get_stream_writer
+
+class State(TypedDict):
+    query: str
+    docs: list[str]
+    answer: str
+
+llm = ChatOpenAI(model="gpt-4o-mini", streaming=True)
+
+def search(state: State) -> State:
+    return {"docs": [f"doc-about-{state['query']}"]}
+
+def write(state: State) -> State:
+    writer = get_stream_writer()           # 拿到 custom 通道
+    writer({"progress": 0.5, "stage": "drafting"})
+    msg = llm.invoke(f"用一句话回答：{state['query']}，资料：{state['docs']}")
+    writer({"progress": 1.0, "stage": "done"})
+    return {"answer": msg.content}
+
+graph = (
+    StateGraph(State)
+    .add_node("search", search)
+    .add_node("write", write)
+    .add_edge(START, "search")
+    .add_edge("search", "write")
+    .add_edge("write", END)
+    .compile()
+)
+
+inputs = {"query": "什么是 LangGraph"}
+```
+
+#### 1. `updates`：只看"这一步改了什么"
+
+```python
+for chunk in graph.stream(inputs, stream_mode="updates"):
+    print(chunk)
+# {'search': {'docs': ['doc-about-什么是 LangGraph']}}
+# {'write':  {'answer': 'LangGraph 是……'}}
+```
+
+每个事件是 `{节点名: 该节点本次产生的增量}`，**前一步的状态不会重复出现**。最省带宽，适合做"进度条""节点已完成"提示。
+
+#### 2. `values`：每步推送"完整快照"
+
+```python
+for chunk in graph.stream(inputs, stream_mode="values"):
+    print(chunk)
+# {'query': '...', 'docs': [],   'answer': ''}        # 初始
+# {'query': '...', 'docs': [...], 'answer': ''}       # search 之后
+# {'query': '...', 'docs': [...], 'answer': '...'}    # write 之后
+```
+
+每个事件都是**整张图当前的完整 State**，可以直接拿去渲染 UI；代价是状态越大越冗余。`updates` 和 `values` 的关系正是 `git diff` 与 `git show HEAD` 的关系。
+
+#### 3. `messages`：LLM 的 token 级流
+
+```python
+for token, meta in graph.stream(inputs, stream_mode="messages"):
+    print(token.content, end="", flush=True)
+# Lang│Graph│ 是│ 一个│ 用于│……   ← 一个个 token 蹦出来
+# meta: {'langgraph_node': 'write', 'langgraph_step': 2, ...}
+```
+
+事件是 `(AIMessageChunk, metadata)` 二元组，**只在节点内部真正调用了 streaming LLM 时**才产生。这是实现 ChatGPT 打字机效果的唯一正确通道——`updates`/`values` 拿到的是节点跑完后的整段文本，没有 token 粒度。
+
+#### 4. `custom`：开发者自己写进流的数据
+
+```python
+for chunk in graph.stream(inputs, stream_mode="custom"):
+    print(chunk)
+# {'progress': 0.5, 'stage': 'drafting'}
+# {'progress': 1.0, 'stage': 'done'}
+```
+
+只会收到节点里 `writer(...)` 主动推送的内容，**和 State 完全解耦**。适合长耗时节点里上报百分比、阶段名、调试信号，避免把这些"非业务"字段污染到 State 中。
+
+#### 5. `debug`：内部执行日志
+
+```python
+for chunk in graph.stream(inputs, stream_mode="debug"):
+    print(chunk["type"], chunk["payload"].get("name"))
+# task        search
+# task_result search
+# task        write
+# task_result write
+```
+
+每个事件包含 `type`（`task` / `task_result` / `checkpoint` 等）、节点名、时间戳、输入输出、错误堆栈。只用于排查死循环、超长执行、checkpoint 没写进去这类问题，**生产环境别开**——量大且包含敏感字段。
+
+#### 一次拿多种模式
+
+```python
+async for mode, chunk in graph.astream(
+    inputs, stream_mode=["updates", "messages", "custom"]
+):
+    if mode == "messages":
+        token, _ = chunk
+        print(token.content, end="", flush=True)
+    elif mode == "custom":
+        print(f"\n[progress] {chunk}")
+    else:  # updates
+        print(f"\n[done] {list(chunk)}")
+```
+
+传 list 时事件变成 `(mode, chunk)`，可以同时驱动「打字机正文 + 侧边进度条 + 节点完成提示」三路 UI，这也是真实产品里最常用的组合。
+
+## 多智能体系统
+
+在复杂的任务中，单一的智能体往往难以胜任所有的子任务，这时候我们就需要引入多智能体系统（Multi-Agent Systems, MAS）的概念。MAS是指由多个智能体组成的系统，这些智能体可以是人类、机器人或者软件程序，它们通过协作来完成复杂的任务。
