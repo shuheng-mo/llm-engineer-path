@@ -1391,3 +1391,318 @@ async for mode, chunk in graph.astream(
 - 对于不需要和用户对话，但是需要并行执行的subagent或者自定义工作流。不需要并行执行但是需要多领域查询的可以考虑router模式。
 
 接下来逐层展开。
+
+### Subagents模式：电商代运营助手
+
+Subagents模式是最简单直接的多智能体系统设计，核心思想是**一个主代理负责整体流程控制，多个子代理负责具体的子任务**。主代理根据用户输入或者任务需求，调用不同的子代理来完成相应的功能。
+
+参考代码`stage2-advanced/04-langgraph/06_module_multi_agent/01_subagents_ecommerce`。
+
+例子非常简单，用户和一个主控Agent交互，主控Agent管理一个产品专家Agent和一个营销专家Agent。
+
+用户上架新商品创建促销活动，主控Agent识别任务细节然后**并行**派发给两个Agent，整合两个子Agent的结果然后反馈给用户。
+
+### Handoff模式，旅行规划助手
+
+Handoff模式强调**去中心化控制**，每个Agent都可以直接和用户交互，并且在需要的时候相互交接任务。适合那些需要频繁和用户互动的场景。核心是通过状态的变化来触发不同Agent之间的交接。4个核心特性：
+
+- 状态驱动
+- 直接用户交互
+- 灵活的交接机制
+- 状态在对话中一只持久化
+参考代码`stage2-advanced/04-langgraph/06_module_multi_agent/02_handoffs_travel`。(但是你会发现实际实现的过程中，我们并没有创建很多个不同的agent，我们实现的方法是创建一个agent，在agent内部根据状态的不同来调用不同的工具来模拟不同的专家agent，这也是目前生产环境中比较常见的做法，毕竟部署和维护多个agent的成本是比较高的)
+
+这个例子中我们也可以抽象出两个关键决策节点的agent，一个负责根据预算定旅行基调，一个负责根据旅行的风格偏好去制定详细的旅行计划。
+
+对于需要深度多轮对话，且不同阶段需要不同专家的场景非常适合Handoff模式，比如旅行规划助手，用户从目的地选择到行程安排再到预订，每个阶段都可能需要不同的专家Agent来处理，每个都需要用户直接和单独的Agent对话。
+
+### Skills模式
+
+Skills的核心是叫做渐进式加载的**上下文管理技术**，每个Agent只在需要的时候才加载对应的技能（工具），避免一次性把所有技能都加载进来导致的上下文过载问题。适合那些技能数量较多但每次只需要用到其中一部分的场景。Athropic的Agent Skills技术的底层哲学就是如此。
+
+参考代码`stage2-advanced/04-langgraph/06_module_multi_agent/03_skills_sql`。
+
+#### 实现机制（以 `SkillMiddleware` 为例）
+
+中间件本身做两件事，**渐进加载是 agent loop 涌现出来的行为，不是中间件分批塞内容**：
+
+1. **`tools = [load_skill]`（类属性）**：把 `load_skill` 工具挂在中间件上，`create_agent` 装配时会自动收集进 agent 的工具池。等价于外层 `create_agent(tools=[load_skill])`，挂在中间件里只是"封装"得更紧。注意：**中间件自己不调 `load_skill`，调用者永远是 LLM**。
+
+2. **重载 `wrap_model_call`**：选这个 hook 是因为我们要修改**即将发给 LLM 的 request**——`before_model` 只能改 state，`after_model` 已经晚了，只有 `wrap_model_call` 能拦住 request 改 `system_message`。每次模型调用前，往 system prompt 末尾追加一段技能"目录"（只有 `name + description`，~200 token）。
+
+完整时间线：
+
+```
+T0  user:    "找上个月订单>$1000的客户"
+
+T1  wrap_model_call:  system = "你是SQL助手" + "## 可用技能\n- sales_analytics: ...\n- inventory_management: ..."
+    LLM 此时看不到任何 schema 细节，只看到目录。
+
+T2  LLM 决策：调 load_skill("sales_analytics") → AIMessage(tool_calls=[...])
+
+T3  agent loop 进 tools 节点 → 执行 load_skill → ToolMessage(完整 schema, ~2KB)
+
+T4  第二轮回 model：wrap_model_call 又跑（目录重复无所谓），
+    LLM 现在的上下文已经包含完整 schema → 写出符合规则的 SQL。
+```
+
+**收益对比**：
+
+| 朴素方案：schema 全塞 system prompt | Skills 模式 |
+|---|---|
+| ~4KB 常驻每次调用 | 常驻只 ~200 token（目录） |
+| LLM 被无关 schema 干扰 | 按需 load 当前相关的 1 套 |
+| 加第 10 个领域 → prompt 膨胀失控 | 加第 10 个领域 → 目录加一行 |
+
+—— 这就是 **progressive disclosure（渐进式披露）**：廉价的元信息（目录）放系统提示，昂贵的完整内容做成工具按需拉。
+
+Skills 模式最强的特性其实是 Token 用量。以下是不同场景下"全量加载 vs Skills 模式"的开销对比：
+
+| 场景 | 全量加载（把所有领域/能力一次性塞进上下文） | Skills 模式（按需加载技能内容） | Skills 相对节省 | 备注（发生了什么） |
+|---|---|---|---|---|
+| 单领域、首次请求 | 高（固定） | 低 | 大 | 只加载"当前任务相关"的技能提示/知识，而不是全家福 |
+| 同领域、连续多轮（同一会话） | 高（每轮都高） | 低（更稳定） | 大 | 仍然只围绕同一个技能工作，不需要重复把无关领域塞进上下文；对话线程保持单一 |
+| 多领域同一轮就要用到（A+B+C） | 高（固定） | 中~高（随加载技能数量上升） | 中 | 需要多个技能就会叠加上下文，但依然避免加载"用不到的技能" |
+| 多领域跨轮逐步扩展（先 A，下一轮变 B） | 高（固定） | 中（逐步上升） | 中 | 技能会"按需增长"，不会一上来全加载；但累计用到的领域越多，上下文也会变重 |
+| 任务不确定/探索型（需要试探哪个技能合适） | 高（固定） | 中（可能多次尝试加载） | 小~中 | 如果路由/判断不准，可能会多加载几次技能内容，节省会被稀释 |
+
+### Router模式
+
+Router模式的核心思想是**先分类再处理**，通过一个路由器Agent根据输入的特征把任务分发给不同的专家Agent来处理，最后再把结果聚合起来反馈给用户。适合那些输入类型多样但可以明确分类的场景。简单理解，就是耳熟能详的“总分总”。
+
+参考代码`stage2-advanced/04-langgraph/06_module_multi_agent/04_router_kb`。
+
+### 4 种 MAS 架构选型横向对比
+
+| 维度 | Subagents | Handoffs | Skills | Router |
+|---|---|---|---|---|
+| 适用任务形态 | 多域工具编排、复杂多跳任务 | 多轮流程、对话推进、角色切换 | 重知识/重 schema/重提示词 | 多源知识检索、垂直领域并行查询 |
+| 并行友好度 | 中（主控可编排）| 低~中（不是重点）| 低（不是重点）| 高（天然 fan-out 并行）|
+| 多跳串联能力 | 强（主控连续调用多个子 Agent）| 强（状态机多步）| 中（多次加载与使用技能）| 中（一次路由后综合；可扩展多轮）|
+| 是否允许子 Agent 直接与用户交互 | 通常否（主控统一对话）| 是（交接后由新 Agent 接管对话）| 单 Agent 对话 | 通常否（更像一次分流+回答）|
+| 上下文膨胀控制 | 中（需回流摘要）| 中（对话历史增长）| 强（progressive disclosure）| 中~高（多分支结果+综合输入）|
+| 可控性/可审计性 | 最高（主控决策点集中）| 高（状态显式）| 中（技能边界明确）| 高（路由规则/分类器可控）|
+| 典型失败模式 | 主控过重、子 Agent 输出不收敛 | 状态条件不稳导致循环/卡死 | 技能描述/触发条件差导致命中率低 | 分类误判、综合器合并失真或冗余 |
+| 一句话总结 | "总指挥调兵遣将" | "流程状态机交接" | "上下文按需加载" | "并行查多源再裁决" |
+
+### 4 种 MAS 架构代码模板
+
+从 `06_module_multi_agent/` 下的 4 个示例提炼出来的"骨架代码"——把业务部分留空，结构部分保留，可以直接当起手脚手架用。
+
+#### 模板 1：Subagents（主控 + 工具化子 Agent）
+
+适用于"一个总控调度多个专家"的场景。**关键技巧**：把每个子 Agent 用 `Command + InjectedToolCallId + ToolMessage` 包装成一个普通工具，让主控通过工具调用机制天然支持并行。
+
+```python
+from typing import Annotated
+from langchain.agents import create_agent
+from langchain.tools import InjectedToolCallId, tool
+from langchain_core.messages import ToolMessage
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
+
+# 1. 子 Agent（每个领域一个）
+specialist_a = create_agent(model, tools=[tool_a1, tool_a2], system_prompt="...")
+specialist_b = create_agent(model, tools=[tool_b1, tool_b2], system_prompt="...")
+
+# 2. 把子 Agent 包成工具（供主控调用）
+@tool("call_specialist_a", description="何时调用 A 的清晰说明")
+def call_specialist_a(
+    request: str,
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> Command:
+    result = specialist_a.invoke({"messages": [{"role": "user", "content": request}]})
+    return Command(update={"messages": [
+        ToolMessage(content=result["messages"][-1].content, tool_call_id=tool_call_id)
+    ]})
+
+# 3. 主控 Agent
+supervisor = create_agent(
+    model,
+    tools=[call_specialist_a, call_specialist_b],
+    system_prompt="你是协调者，根据请求分发到合适的专家...",
+    checkpointer=InMemorySaver(),  # 需要 HITL/恢复时必备
+)
+```
+
+如需 HITL 中断（如 `create_product` 前审批）：子 Agent 也要 `checkpointer`，tool wrapper 内用 `get_state` 判断是否在 resume 路径上（见 `01_subagents_ecommerce/07_full_demo.py`）。
+
+#### 模板 2：Handoffs（单 Agent + 状态机多阶段）
+
+适用于"流程有明确阶段、每阶段可用工具不同"的场景。**关键技巧**：自定义 state 携带 `current_step`；用 `@wrap_model_call` 中间件每次模型调用前根据 `current_step` 切换 prompt 和 tools 子集；转换工具用 `Command` 同时改写状态字段+`current_step`。
+
+```python
+from typing import Callable, Literal
+from typing_extensions import NotRequired
+from langchain.agents import AgentState, create_agent
+from langchain.agents.middleware import ModelRequest, ModelResponse, wrap_model_call
+from langchain.messages import SystemMessage, ToolMessage
+from langchain.tools import ToolRuntime, tool
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
+
+Step = Literal["step_a", "step_b", "step_c"]
+
+# 1. 自定义状态
+class MyState(AgentState):
+    current_step: NotRequired[Step]
+    biz_field: NotRequired[str]
+
+# 2. 阶段转换工具
+@tool
+def go_to_step_b(arg: str, runtime: ToolRuntime[None, MyState]) -> Command:
+    return Command(update={
+        "messages": [ToolMessage(content="...", tool_call_id=runtime.tool_call_id)],
+        "biz_field": arg,
+        "current_step": "step_b",
+    })
+
+# 3. 阶段配置
+STEP_CONFIG = {
+    "step_a": {"prompt": "A 阶段 prompt", "tools": [go_to_step_b], "requires": []},
+    "step_b": {"prompt": "B 阶段 prompt 用 {biz_field}", "tools": [...], "requires": ["biz_field"]},
+}
+
+# 4. 中间件：按 current_step 切 prompt 和 tools
+@wrap_model_call
+def apply_step_config(req: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]):
+    step = req.state.get("current_step", "step_a")
+    cfg = STEP_CONFIG[step]
+    for k in cfg["requires"]:
+        assert req.state.get(k) is not None, f"{step} 需要 {k}"
+    req = req.override(
+        system_message=SystemMessage(content=cfg["prompt"].format(**req.state)),
+        tools=cfg["tools"],
+    )
+    return handler(req)
+
+# 5. 装配 — tools 要列所有阶段会用到的"并集"
+agent = create_agent(
+    model,
+    tools=ALL_TOOLS,  # 并集，否则 override 切到子集时找不到实现
+    state_schema=MyState,
+    middleware=[apply_step_config],
+    checkpointer=InMemorySaver(),
+)
+```
+
+#### 模板 3：Skills（中间件 + 渐进式加载）
+
+适用于"领域知识多但单次只用一两个"的场景。**关键技巧**：`AgentMiddleware.tools` 类属性自带工具；`wrap_model_call` 把"技能目录（仅 name+description）"注入 system prompt，让 LLM 决策何时调 `load_skill(name)` 拉完整内容。
+
+```python
+from typing import Callable, TypedDict
+from langchain.agents import create_agent
+from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
+from langchain.messages import SystemMessage
+from langchain.tools import tool
+
+class Skill(TypedDict):
+    name: str
+    description: str  # 短 — 进系统提示
+    content: str      # 长 — 按需 load
+
+SKILLS: list[Skill] = [
+    {"name": "skill_a", "description": "...", "content": "...一大段..."},
+    {"name": "skill_b", "description": "...", "content": "...一大段..."},
+]
+
+@tool
+def load_skill(skill_name: str) -> str:
+    """按名字加载技能完整内容到上下文。"""
+    for s in SKILLS:
+        if s["name"] == skill_name:
+            return f"✅ 已加载 {skill_name}\n\n{s['content']}"
+    return f"❌ 未找到，可用：{', '.join(s['name'] for s in SKILLS)}"
+
+class SkillMiddleware(AgentMiddleware):
+    tools = [load_skill]  # 类属性，create_agent 自动收集
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.catalog = "\n".join(f"- **{s['name']}**: {s['description']}" for s in SKILLS)
+
+    def wrap_model_call(self, req: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]):
+        addendum = f"\n\n## 可用技能\n\n{self.catalog}\n\n按需调用 load_skill 加载详情。"
+        base = req.system_message.text if req.system_message else ""
+        return handler(req.override(system_message=SystemMessage(content=(base + addendum).strip())))
+
+agent = create_agent(model, system_prompt="...", middleware=[SkillMiddleware()])
+```
+
+#### 模板 4：Router（分类 + Send 并行 + 综合）
+
+适用于"多源知识检索"的 Map-Reduce 场景。**关键技巧**：分类器用 `with_structured_output` 拆任务；`Send` 给每个目标节点带独立子 state（比字符串路由表达力强）；results 字段用 `Annotated[list, operator.add]` 让并行结果自动合并。
+
+```python
+import operator
+from typing import Annotated, Literal, TypedDict
+from langchain.agents import create_agent
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
+from pydantic import BaseModel, Field
+
+# 1. 状态：results 用 operator.add 让并行节点的列表自动合并
+class Classification(TypedDict):
+    source: Literal["src_a", "src_b", "src_c"]
+    query: str
+
+class RouterState(TypedDict):
+    query: str
+    classifications: list[Classification]
+    results: Annotated[list[dict], operator.add]
+    final_answer: str
+
+# 2. 分类器（结构化输出）
+class ClsResult(BaseModel):
+    classifications: list[Classification] = Field(description="...")
+
+def classify(state: RouterState) -> dict:
+    out = model.with_structured_output(ClsResult).invoke([
+        {"role": "system", "content": "分析 query，决定调哪些 source..."},
+        {"role": "user", "content": state["query"]},
+    ])
+    return {"classifications": out.classifications}  # type: ignore[union-attr]
+
+# 3. Send 路由：给每个目标节点带独立子 state
+def route(state: RouterState) -> list[Send]:
+    return [Send(c["source"], {"query": c["query"]}) for c in state["classifications"]]
+
+# 4. 各 source 专家节点
+agent_a = create_agent(model, tools=[...], system_prompt="...")
+def query_a(state: dict) -> dict:
+    r = agent_a.invoke({"messages": [{"role": "user", "content": state["query"]}]})
+    return {"results": [{"source": "src_a", "result": r["messages"][-1].content}]}
+# query_b / query_c 同理
+
+# 5. 综合器
+def synthesize(state: RouterState) -> dict:
+    formatted = [f"**{r['source']}**: {r['result']}" for r in state["results"]]
+    resp = model.invoke([
+        {"role": "system", "content": f'综合回答："{state["query"]}"'},
+        {"role": "user", "content": "\n\n".join(formatted)},
+    ])
+    return {"final_answer": resp.content}
+
+# 6. 编译
+workflow = (
+    StateGraph(RouterState)
+    .add_node("classify", classify)
+    .add_node("src_a", query_a).add_node("src_b", query_b).add_node("src_c", query_c)
+    .add_node("synthesize", synthesize)
+    .add_edge(START, "classify")
+    .add_conditional_edges("classify", route, ["src_a", "src_b", "src_c"])
+    .add_edge("src_a", "synthesize").add_edge("src_b", "synthesize").add_edge("src_c", "synthesize")
+    .add_edge("synthesize", END)
+    .compile()
+)
+```
+
+#### 模板选择速查
+
+| 你的场景特征 | 选 |
+|---|---|
+| 一个"大脑"协调多个工具专家，要灵活并行多领域 | Subagents |
+| 流程有清晰的"阶段→阶段"切换，每阶段 prompt/tools 不同 | Handoffs |
+| 领域知识大、单次只用其中一两个、想省 token | Skills |
+| 多个独立知识源同时查、最后合并答案 | Router |
