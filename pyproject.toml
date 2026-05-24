@@ -30,6 +30,11 @@ fastapi = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "python-multipart>=0.0.9",
+    "sqlmodel>=0.0.38",
+    "aiosqlite>=0.22.1",
+    "python-jose[cryptography]>=3.5.0",
+    "bcrypt>=5.0.0",
+    "greenlet>=3.5.0",
 ]
 mysql = [
     "sqlalchemy>=2.0",

@@ -2,6 +2,7 @@
 
 对应课程章节：四 / 第四章 8
 """
+
 import os
 from typing import List, Optional, Tuple
 
@@ -18,7 +19,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
-
 
 
 from pathlib import Path
@@ -66,12 +66,16 @@ def build_vectorstore_from_md(
 
     embeddings = DashScopeEmbeddings(model=embedding_model)
     if persist_dir:
-        return Chroma.from_documents(documents=docs, embedding=embeddings, persist_directory=persist_dir)
+        return Chroma.from_documents(
+            documents=docs, embedding=embeddings, persist_directory=persist_dir
+        )
     return Chroma.from_documents(documents=docs, embedding=embeddings)
 
 
 print("--- [系统启动] 正在初始化向量数据库（从MD加载）---")
-vectorstore = build_vectorstore_from_md(md_dir=str(DATA_DIR), persist_dir=str(DATA_DIR / "chroma_db"))
+vectorstore = build_vectorstore_from_md(
+    md_dir=str(DATA_DIR), persist_dir=str(DATA_DIR / "chroma_db")
+)
 retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 print("--- [系统启动] 向量数据库准备完毕 ---")
 
@@ -110,11 +114,15 @@ def grade_documents_node(state: SubGraphState):
         binary_score: str = Field(description="相关则 'yes'，否则 'no'")
 
     grader_llm = llm.with_structured_output(Grade)
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-         "你是严格的检索结果评估器。只判断：文档是否包含回答问题所需的关键信息。相关=yes，不相关=no。"),
-        ("human", "问题:\n{question}\n\n文档:\n{document}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "你是严格的检索结果评估器。只判断：文档是否包含回答问题所需的关键信息。相关=yes，不相关=no。",
+            ),
+            ("human", "问题:\n{question}\n\n文档:\n{document}"),
+        ]
+    )
     grade_chain = prompt | grader_llm
 
     filtered = []
@@ -128,14 +136,16 @@ def grade_documents_node(state: SubGraphState):
 def rewrite_node(state: SubGraphState):
     print("  [Worker] ⚠️ 文档无关，正在重写查询...")
     question = state["question"]
-    msg = HumanMessage(content=(
-        "请将下面问题改写为更适合向量检索的中文查询语句。\n"
-        "要求：\n"
-        "1) 必须保持原问题语义不变（年份、公司、指标等关键实体必须保留）\n"
-        "2) 更偏"名词短语/关键词组合"，避免长句\n"
-        "3) 只输出改写后的查询语句，不要解释\n\n"
-        f"原问题：{question}"
-    ))
+    msg = HumanMessage(
+        content=(
+            "请将下面问题改写为更适合向量检索的中文查询语句。\n"
+            "要求：\n"
+            "1) 必须保持原问题语义不变（年份、公司、指标等关键实体必须保留）\n"
+            "2) 更偏“名词短语/关键词组合”，避免长句\n"
+            "3) 只输出改写后的查询语句，不要解释\n\n"
+            f"原问题：{question}"
+        )
+    )
     better_question = llm.invoke([msg]).content.strip()
     count = state.get("search_count", 0) + 1
     print(f"  [Worker] 新查询: {better_question} (search_count={count})")
@@ -150,7 +160,7 @@ def generate_node(state: SubGraphState):
 
     prompt = ChatPromptTemplate.from_template(
         "你是金融分析助手。请严格基于已知信息回答。\n"
-        "若已知信息不足以回答，直接说"未在资料中找到相关信息"。\n\n"
+        "若已知信息不足以回答，直接说“未在资料中找到相关信息”。\n\n"
         "已知信息:\n{context}\n\n"
         "问题: {question}\n"
         "回答:"
@@ -211,13 +221,15 @@ def planner_node(state: MainState):
         "请把用户复杂问题拆成若干【可检索的事实型子问题】（每一步都应该能通过资料检索得到明确答案）。\n"
         "强约束：\n"
         "1) 每一步必须包含关键实体（公司/年份/指标，如研发投入、毛利率等）\n"
-        "2) 避免"分析一下/写报告/给建议"等不可检索表述\n"
+        "2) 避免“分析一下/写报告/给建议”等不可检索表述\n"
         "3) 步骤数量 2~5 个\n"
     )
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{question}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{question}"),
+        ]
+    )
     plan_obj = (prompt | planner_llm).invoke({"question": question})
     steps = [s.strip() for s in plan_obj.steps if s.strip()]
     print(f"--- [Planner] 生成计划: {steps} ---")
@@ -229,12 +241,14 @@ def executor_node(state: MainState):
     current_step = plan[0]
     print(f"\n--- [Executor] 执行步骤: {current_step} ---")
 
-    worker_output = rag_worker.invoke({
-        "question": current_step,
-        "search_count": 0,
-        "documents": [],
-        "generation": "",
-    })
+    worker_output = rag_worker.invoke(
+        {
+            "question": current_step,
+            "search_count": 0,
+            "documents": [],
+            "generation": "",
+        }
+    )
 
     step_result = worker_output.get("generation", "")
     print(f"--- [Executor] 步骤结果: {step_result} ---")
@@ -276,7 +290,9 @@ workflow.add_node("solver", solver_node)
 
 workflow.set_entry_point("planner")
 workflow.add_edge("planner", "executor")
-workflow.add_conditional_edges("executor", should_continue, {"continue": "executor", "end": "solver"})
+workflow.add_conditional_edges(
+    "executor", should_continue, {"continue": "executor", "end": "solver"}
+)
 workflow.add_edge("solver", END)
 
 app = workflow.compile()
