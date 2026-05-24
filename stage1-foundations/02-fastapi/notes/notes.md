@@ -417,3 +417,405 @@ client = TestClient(mini_app)  # 只起 books，不拉起整个 monolith
 ### 一句话收尾
 
 > **`app.xxx` 把所有路由长在一棵主树上；`APIRouter` 是每个业务领域一棵子树，最后嫁接到主树。** 大项目用前者会让 main.py 变成"上帝文件"；用后者能让横切关注点（auth/prefix/tags/docs）一次配置批量生效，并把代码结构 × 业务领域 × 分层架构 × 团队组织四者对齐 —— 这就是企业级项目的工程价值所在。
+
+---
+
+## Session Cookie vs JWT —— 两个不同层次的东西
+
+### 先厘清概念层级
+
+- **Cookie** 是**传输机制** —— 浏览器自动管理的 HTTP 头字段 (`Set-Cookie` / `Cookie`)
+- **JWT** 是**数据格式** —— 一段签名过的 JSON，放在哪里都行
+
+类比：**Cookie 是"信封"，JWT 是"信纸"**。可以装进信封 (JWT-in-cookie)，也可以直接传递 (Bearer in Authorization header)。维度不同。
+
+### 你以为"像"的其实是 Session Cookie vs JWT
+
+老式 Web 登录用 Session Cookie，跟 JWT 抽象层面确实像：
+
+| 相似点 | Session Cookie | JWT |
+|---|---|---|
+| 何时发放 | 登录后服务器下发 | 登录后服务器下发 |
+| 客户端职责 | 每次请求都带 | 每次请求都带 |
+| 过期机制 | 有 | 有 |
+
+**都是"凭证"** —— 登录一次后不用每次重输密码。
+
+### 关键差异：有状态 vs 无状态
+
+```
+Session Cookie (有状态):
+  浏览器 ──Cookie: SID=abc123──▶ 服务器 ──查──▶ Redis/DB
+                                              {user_id:1, role:admin}
+
+JWT (无状态):
+  客户端 ──Bearer eyJ...{user_id:1}...──▶ 服务器 ──验签──▶ 直接拿到 {user_id:1}
+                                                            (不查任何 DB)
+```
+
+| 维度 | Session Cookie | JWT |
+|---|---|---|
+| 里面装啥 | 不透明 ID (如 `abc123`) | 实际用户数据 + 签名 |
+| 是否查 DB | **必须查** (用 ID 反查 session) | **不需要查** (自带信息) |
+| 服务端状态 | 存 (session 表/Redis) | 不存 |
+| 撤销登录 | 删 session 记录立即生效 | 难 (要么等过期，要么维护 blocklist) |
+| 跨服务 | 难 (每个服务都要查同一个 session 中心) | 易 (每个服务自己验签即可) |
+| 客户端类型 | 主要浏览器 | 浏览器 / 移动 / 后端 / 微服务 |
+
+JWT 流行不是因为"格式酷"，而是**无状态特性在微服务/移动/第三方 API 场景里碾压传统 session**。
+
+### 三种实际组合
+
+```http
+# 1. 传统 — Cookie 装 SessionID
+Set-Cookie: SID=abc123; HttpOnly; Secure; SameSite=Strict
+
+# 2. 现代 API — JWT 装 Authorization Header (ch07 学的就是这个)
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+
+# 3. 混合 — Cookie 装 JWT (Web SPA 安全的折中)
+Set-Cookie: jwt=eyJhbGciOiJIUzI1NiIs...; HttpOnly; Secure; SameSite=Strict
+```
+
+### 各自的坑
+
+**Session Cookie**：每次都查 session 中心 → 性能瓶颈；横向扩展 session 同步麻烦；CSRF 高发。
+
+**JWT**：登出难（除非维护 blocklist 把"无状态优势"打回原形）；Payload 是 Base64 不是加密，**别塞密码/邮箱/身份证号**；改密码/权限不会立刻生效。
+
+### 一个常见误区
+
+> "JWT 比 Cookie 安全" —— **错。**
+
+JWT 在 `localStorage` 裸放反而比 HttpOnly Cookie 更不安全（容易被 XSS 拿走）。**JWT 提供的是"信息不被篡改"（签名验证），不是"信息不被窃取"**。要防窃取还得靠 HTTPS + HttpOnly Cookie + 短 TTL。
+
+### 一句话本质
+
+> **Session Cookie 是"我是谁，你查表"；JWT 是"我是谁，你验签"。** 前者把状态放服务器，后者把状态放 token 里。Cookie 是"信封"，JWT 是"信纸"，维度不同 —— 可以叠加用。
+
+---
+
+## 为什么 LLM Agent 偏好 JWT
+
+**一句话本质**：LLM Agent 不是"网页"，是"分布式后端服务的协调者"。它同时具备 Session Cookie 难处理的三个特征 —— **分布式 + 多用户并发 + 跨服务身份传递**。
+
+### 七个理由
+
+**1. Agent 是 server-to-server，没有浏览器**
+```
+用户 ──HTTP──▶ Agent ──HTTP──▶ Tool A / Tool B / MCP / LLM API
+```
+Cookie 是浏览器抽象；server-to-server 没有 cookie jar，只能手动塞 header。`Authorization: Bearer <jwt>` 是 OpenAI/Anthropic/MCP 全用的事实标准。
+
+**2. 跨服务身份透传（最关键）**
+```
+用户 Alice → JWT → Agent → 转发同一 JWT → Tool A / Tool B / Tool C
+```
+**JWT 让"用户身份"像参数一样跟着请求流动**。Session Cookie 跨服务转发要重新做映射，需要中央 session DB，引入巨大耦合。
+
+**3. Agent 后端水平扩展友好**
+LLM 推理贵 → K8s 自动扩缩容。JWT 验签是纯 CPU 微秒级；Session Cookie 每次查 Redis 毫秒级 + 网络往返。Agent 一个会话可能调 50 次工具，差距累积明显。
+
+**4. MCP 协议就是 Bearer 设计的**
+```json
+{ "transport": "streamable_http",
+  "auth": { "type": "oauth2", "token": "eyJ..." } }
+```
+MCP 根本没设计 cookie 字段。所有远程 MCP server 用 OAuth2 → Bearer Token。stage2 的 `05-mcp-a2a/` 会反复见。
+
+**5. JWT Claims 适合"代理授权"**
+```json
+{
+  "sub": "alice",
+  "scope": "books:read",       // 限定 Agent 只能读，不能写
+  "aud": "books-api",          // 这个 token 只对此服务有效
+  "act": {"sub": "agent-123"}  // RFC 8693: 实际执行者是 Agent
+}
+```
+JWT 装结构化授权信息，Session Cookie 是不透明 ID 做不到。
+
+**6. 短 TTL + Refresh Token 限制爆炸半径**
+Agent 跑几小时（Deep Research / Manus）。短期 access token（5-15 分钟）+ refresh token 静默换新，token 泄露窗口极小。
+
+**7. 跟 OAuth2 / OIDC 生态原生兼容**
+Agent 调 GitHub / Notion / Google API 几乎全是 OAuth2 → 返回 access_token (JWT)。**根本没有 "OAuth2 + Session Cookie" 的工作流**，不用 JWT 等于脱离开放生态。
+
+### 实战代码（ch07 学的就能直接搬）
+
+```python
+# Agent 入口验签
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    return User(id=payload["sub"], scopes=payload["scope"].split())
+
+# Agent 调下游工具时透传
+async def call_tool(tool_url, user_token):
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            tool_url,
+            headers={"Authorization": f"Bearer {user_token}"},  # ← 透传
+            json={...},
+        )
+```
+
+**用户 → Agent → Tool** 这条链路从头到尾同一个 JWT 在流动，每跳都能验签、都能从 claims 看出"这是 Alice 让 Agent 让做的"。
+
+### 什么时候不用 JWT
+
+- 本地工具（subprocess MCP / 本地脚本）—— 进程边界内不需要鉴权
+- 单用户 prototype demo —— 直接 API Key
+- 完全公开的工具（如纯计算器）—— 不需要身份
+
+涉及"多用户 / 跨服务 / 第三方 API / 长链运行"任一者，JWT 基本是唯一合理选择。
+
+### 一句话收尾
+
+> **LLM Agent 本质是调度多个下游服务的分布式后端**。Cookie 是"浏览器时代的方言"，JWT 是"分布式 + 无状态 + 可携带"的世界语 —— 既能在 Agent ↔ 工具 ↔ 用户三者间流动，又能携带细粒度授权信息，还跟 MCP / OAuth2 整个生态原生兼容。**不是"Agent 喜欢 JWT"，是 "Agent 没有别的选择"。**
+
+---
+
+## JWT 结构剖析与典型鉴权流程
+
+### 一句话本质
+
+**JWT = 三段 Base64Url 字符串，用 `.` 拼接**。前两段是数据，第三段是用密钥算出来的签名 —— 用来证明"这段数据没被改过"。
+
+### 整体形态
+
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsImV4cCI6MTczNTY4OTYwMH0.Pj7mFx-Va_xCwUuQNTjAStFXq...
+└────── Header ─────────────────────┘ └────────── Payload ──────────────────────┘ └── Signature ────┘
+```
+
+三部分都用 `.` 隔开，**每段都是 Base64Url 编码** (不是加密！谁都能解码看到内容，只是不能篡改)。
+
+### Header（头部）—— 元数据
+
+```json
+{
+  "alg": "HS256",   // 签名算法 (HS256=对称 / RS256=非对称)
+  "typ": "JWT"      // 类型，固定填 "JWT"
+}
+```
+
+| 字段 | 作用 |
+|---|---|
+| `alg` | 第三段签名用什么算法算出来的 |
+| `typ` | 类型标识，固定 "JWT" |
+| `kid` (可选) | 密钥 ID，多密钥轮换场景下用 |
+
+### Payload（载荷）—— 真正的"信息"
+
+```json
+{
+  "sub": "alice",                    // Subject: 用户唯一标识 (RFC 7519 标准字段)
+  "exp": 1735689600,                 // Expiration: 过期时间 (Unix 秒)
+  "iat": 1735686000,                 // Issued At: 签发时间
+  "iss": "books-api",                // Issuer: 谁签发的
+  "aud": "books-frontend",           // Audience: 给谁用的
+  "scope": "books:read books:write", // 自定义: 权限范围
+  "role": "admin"                    // 自定义: 任意业务字段
+}
+```
+
+**RFC 7519 标准 7 字段**（前面是简写，全是 3 字母）:
+
+| 字段 | 全称 | 用途 |
+|---|---|---|
+| `sub` | Subject | 用户/主体唯一 ID (最常用) |
+| `exp` | Expiration | 过期时间戳 |
+| `iat` | Issued At | 签发时间戳 |
+| `nbf` | Not Before | 这个时间之前不生效 |
+| `iss` | Issuer | 签发方 |
+| `aud` | Audience | 受众 (验证时要匹配) |
+| `jti` | JWT ID | token 唯一 ID (做 blocklist 用) |
+
+⚠️ **Payload 是 Base64Url 编码，不是加密！** 任何人拿到 token 都能 decode 看到所有字段。**绝对不要塞密码、邮箱、身份证号、手机号** 等敏感信息。
+
+### Signature（签名）—— 防篡改的核心
+
+```python
+signature = HMACSHA256(
+    base64UrlEncode(header) + "." + base64UrlEncode(payload),
+    SECRET_KEY
+)
+```
+
+签名是**对前两段做的 HMAC**。验证时：
+1. 服务器拿到 token，把前两段重新算一次签名
+2. 跟 token 自带的第三段对比
+3. 一致 → 没被篡改，可信；不一致 → 篡改/伪造，拒绝
+
+**为什么改 payload 会被发现？** 改了 payload 第三段签名就对不上了，攻击者没有 `SECRET_KEY` 算不出新签名 —— 这是 JWT 安全的根基。
+
+| 算法 | 类型 | 密钥模型 |
+|---|---|---|
+| **HS256** | 对称 (HMAC-SHA256) | 签发方和验证方共享同一个密钥 |
+| **RS256** | 非对称 (RSA-SHA256) | 私钥签名，公钥验签 (多服务架构常用) |
+| **ES256** | 非对称 (ECDSA-SHA256) | 同 RS256 但更短更快 |
+
+`stage2` 你接 MCP / 第三方 OAuth2 时基本都是 RS256（公钥可以放心分发，每个微服务都能验签但都不能签发）。
+
+### 典型鉴权流程 —— 用户查自己 Profile
+
+场景：用户登录后，前端拿 token 调 `GET /users/me` 拿个人资料。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as 前端 / Client
+    participant A as API Server (FastAPI)
+    participant DB as 数据库
+
+    Note over C,DB: ─── 阶段 ①: 登录 (获取 Token) ───
+    C->>A: POST /login {username, password}
+    A->>DB: SELECT * FROM users WHERE username=?
+    DB-->>A: User { username, hashed_password, ... }
+    Note over A: bcrypt.checkpw(password, hashed_password)
+    Note over A: ✓ 通过 → 生成 JWT
+    Note over A: payload = {sub: "alice", exp: now+30m}<br/>signature = HMAC(header.payload, SECRET)
+    A-->>C: 200 { access_token: "eyJ...", token_type: "bearer" }
+    Note over C: 存到 localStorage / Cookie / memory
+
+    Note over C,DB: ─── 阶段 ②: 后续受保护请求 ───
+    C->>A: GET /users/me<br/>Authorization: Bearer eyJ...
+    Note over A: 1. 从 Header 提取 token<br/>2. jwt.decode(token, SECRET)<br/>   - 验签名<br/>   - 验 exp 是否过期<br/>3. 取出 payload.sub = "alice"
+    A->>DB: SELECT * FROM users WHERE username='alice'
+    DB-->>A: User profile {id, username, email, bio, ...}
+    A-->>C: 200 { username, email, bio, ... }
+
+    Note over C,DB: ─── 阶段 ③: Token 过期场景 ───
+    C->>A: GET /users/me<br/>Authorization: Bearer (过期的 eyJ...)
+    Note over A: jwt.decode → ExpiredSignatureError
+    A-->>C: 401 Unauthorized { detail: "Token expired" }
+    Note over C: 用 refresh_token 换新 access_token 或重新登录
+```
+
+### 关键观察
+
+1. **登录走数据库**（验密码 + 取信息），**之后所有请求只验签不查 token 表**
+   —— 这就是"无状态"的体现。每次请求不需要查"这个 token 是不是有效"，直接验签就行。
+
+2. **每次请求都查用户表是必要的吗？**
+   —— 不一定。如果 JWT payload 里已经塞了足够信息（如 `role`、`tenant_id`），路由判断权限**完全不查 DB**。但取动态信息（如个人资料、最新数据）仍需查 DB。
+
+3. **失效问题**
+   —— 用户改密码后，老 token 没过期就还能用。生产做法：
+   - **短 TTL**（15 分钟）+ refresh token 机制
+   - 维护 `jti` blocklist（牺牲部分无状态优势）
+   - 把 `password_changed_at` 写进 payload，每次验时跟 DB 对比
+
+4. **Header 字段名约定**
+   ```http
+   Authorization: Bearer eyJ...
+   ```
+   `Bearer` 是 OAuth2 规范定义的关键字（意为"持有者"，谁拿到这个 token 谁就被信任为对应用户）。FastAPI 的 `OAuth2PasswordBearer` 就是按这个规范从 header 提 token。
+
+### 在 ch07 代码里对应
+
+| 概念 | ch07 代码位置 |
+|---|---|
+| Header.alg = HS256 | `ALGORITHM = "HS256"` |
+| Payload.sub | `to_encode = {"sub": user["username"]}` |
+| Payload.exp | `to_encode.update({"exp": expire})` |
+| 签名 | `jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)` |
+| 验签 | `jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])` |
+| Bearer 提取 | `OAuth2PasswordBearer(tokenUrl="token")` |
+| 验证用户存在 | `users_db.get(username)` (生产换成 SQL) |
+
+### 一句话收尾
+
+> **JWT 三段 = Header (怎么签) + Payload (谁是谁) + Signature (没被改)**。鉴权流程的关键不是"服务器记住了谁登录"，而是"客户端拿着一张不能伪造的身份证，每次出示，服务器现场验真"。这就是为什么它能完美适配无状态架构、跨服务调用、和 LLM Agent 工具链。
+
+---
+
+## SECRET_KEY 在 JWT 鉴权中的作用
+
+### 一句话本质
+
+**`SECRET_KEY` 是 JWT 的"金钥匙"**：`create_access_token` 用它签，`get_current_user` 用它验。HS256 是对称算法 —— **签和验必须用同一把钥匙**。
+
+### 调用链
+
+```
+main.py
+  └─ from utils.security import create_access_token, get_current_user
+                                  │              │
+                                  ▼              ▼
+                            jwt.encode(...)  jwt.decode(...)
+                                  ▲              ▲
+                                  └──── SECRET_KEY ────┘
+                                  (security.py 模块作用域)
+```
+
+`main.py` 自己不直接引用 `SECRET_KEY`，但它调用的两个函数都依赖这个变量 —— 函数体内的 `SECRET_KEY` 通过模块级名字查找，**在调用时去 `security.py` 的模块命名空间里找**。
+
+### 实测验证 (在 ch07/jwt_app 里)
+
+| 场景 | 结果 |
+|---|---|
+| 同一个 KEY 签 + 验 | HTTP 200 ✓ |
+| KEY-B 伪造 token，服务器用 KEY-A 验 | HTTP 401 `"无法验证凭据"` ✗ |
+
+### 推论 —— 改 SECRET_KEY 的副作用
+
+改 `security.py` 顶部那行 `SECRET_KEY` 然后重启服务器：
+
+1. 客户端旧 token 全部失效 (用旧 KEY 签的，新 KEY 验不过)
+2. 用户必须重新登录拿新 token
+3. 这就是 **"服务端登出 / 强制登出全员"** 的实现方式 —— 改密钥即一键吊销全部 token
+
+### 为什么硬编码 SECRET_KEY 是反模式
+
+```python
+SECRET_KEY = "YOUR_SUPER_SECRET_KEY"  # ⚠️ 反例！
+```
+
+三个问题：
+
+1. **进 git 历史就出不去** —— 哪怕后来删了，仍在 git log 里
+2. **代码审查 / 截屏 / 第三方扫描器** 都可能泄露
+3. **多环境 (dev/staging/prod) 需要不同密钥**，硬编码做不到
+
+### 生产正解
+
+**从环境变量读**：
+
+```python
+import os
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY 环境变量未设置")
+```
+
+**更工程化用 pydantic-settings**：
+
+```python
+from pydantic_settings import BaseSettings
+
+class AuthSettings(BaseSettings):
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    model_config = {"env_file": ".env"}
+
+settings = AuthSettings()
+# 用法: jwt.encode(payload, settings.jwt_secret_key, ...)
+```
+
+`.env` 文件 (已在 `.gitignore`):
+
+```
+JWT_SECRET_KEY=xxxxxxxxxxxxxxxx_some_long_random_string
+```
+
+生成强随机密钥:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+# 输出: XK3MqL...nv (88 字符强随机字符串)
+```
+
+### 一句话收尾
+
+> **SECRET_KEY 是签和验的同一把钥匙**：泄露 = 攻击者能伪造任意用户的 token；丢失/更换 = 所有现存 token 立刻失效。所以生产必须放进环境变量、定期轮换、用 `secrets.token_urlsafe(64)` 这种强随机源生成 —— 它的安全性直接决定整个鉴权系统的安全性。

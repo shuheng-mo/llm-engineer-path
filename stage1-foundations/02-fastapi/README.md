@@ -14,6 +14,7 @@
 | `ch05-orm/` | SQLModel + 异步 SQLAlchemy + CRUD 测试 | `orm/`, `crud.py`, `test_crud.py` |
 | `ch06-dependency-injection/` | Depends · yield 生命周期 · APIRouter · 分层架构 | 4 个子项目 (`apirouter_full/`, `apirouter_advanced/`, `layered_arch/`, `library-magmt-system/` 综合实践) + 单文件示例 |
 | `ch07-auth-security/` | bcrypt · JWT · OAuth2 · 私密笔记本完整项目 | `jwt_app/` 是登录 demo，`notebook_app/` 是综合实战 |
+| `ch08-advanced/` | 中间件 · 后台任务 · 文件上传 | 5 个独立示例 (`01_middleware.py` ~ `05_file_upload_multi_form.py`) |
 
 ## 运行约定
 
