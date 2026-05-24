@@ -155,3 +155,10 @@ target-version = "py312"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+# Pylance / Pyright 配置 — IDE 静态分析用，与运行时无关
+# extraPaths: ch06/ch07 里若干文件在运行时用 sys.path.insert 把 ch05-orm/ 加进去
+#             以便 `from orm.models import Book` 跨章节工作；这里告诉 Pylance
+#             同样的路径，红线消失。
+[tool.pyright]
+extraPaths = ["stage1-foundations/02-fastapi/ch05-orm"]

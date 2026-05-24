@@ -24,3 +24,9 @@ class UserOut(BaseModel):
 async def create_user(user: UserIn):
     # 即使这里返回了包含 password 的对象，响应中也只会保留 UserOut 声明的字段
     return user
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)

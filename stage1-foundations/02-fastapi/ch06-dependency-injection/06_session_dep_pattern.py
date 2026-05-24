@@ -7,10 +7,8 @@
 from typing import AsyncGenerator
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-# 修改这个 DATABASE_URL
-DATABASE_URL = "sqlite+aiosqlite:///./orm/books.db"
-
-# 其他不变 ....
+# DATABASE_URL 已经在 ch05-orm/orm/database.py 中用 Path(__file__) 算成绝对路径，
+# 统一指向 02-fastapi/data/books.db (跨章节共享)。此处只演示新增的 get_session() 依赖。
 
 
 # 新增这个方法

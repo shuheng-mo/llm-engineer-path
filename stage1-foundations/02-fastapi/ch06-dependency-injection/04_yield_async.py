@@ -27,4 +27,8 @@ async def main():
 
 
 # 运行异步主函数
+from time import perf_counter
+
+start = perf_counter()
 asyncio.run(main())
+print(f"总耗时：{perf_counter() - start}秒")

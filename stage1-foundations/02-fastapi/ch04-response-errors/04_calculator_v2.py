@@ -42,8 +42,16 @@ async def calculate_v2(request: CalcRequest):
         # 优雅地抛出错误
         raise HTTPException(status_code=400, detail="除数不能为零")
 
+    result = 0.0
     # ... 计算逻辑 ...
-    result = ...
+    if request.op == Operation.add:
+        result = request.a + request.b
+    elif request.op == Operation.subtract:
+        result = request.a - request.b
+    elif request.op == Operation.multiply:
+        result = request.a * request.b
+    elif request.op == Operation.divide:
+        result = request.a / request.b
 
     # 返回对象，FastAPI 会自动填充到 StandardResponse 的结构中
     # 注意：如果手动构造 StandardResponse，则不需要 response_model 自动过滤

@@ -23,4 +23,10 @@ async def main():
     print("早餐准备完毕！")
 
 
+from time import perf_counter
+
+start_time = perf_counter()
+
 asyncio.run(main())
+
+print(f"任务总耗时 {perf_counter() - start_time:.2f} 秒")
